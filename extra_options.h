@@ -6,7 +6,7 @@
 #include <windows.h>
 
 #define MOD_NAME "Forza Horizon 2 Extra Options"
-#define MOD_VERSION "0.2.98"
+#define MOD_VERSION "0.2.98+extras.1"
 #define MOD_INI_NAME L"FH2_ExtraOptions.ini"
 #define MOD_LOG_NAME L"FH2_ExtraOptions.log"
 #define GAME_EXE_NAME L"forza_durango_release_final.exe"
@@ -15,6 +15,9 @@
 #define GAME_IMAGE_SIZE 0x3a18000u
 #define GAME_TIMESTAMP 0x565501edu
 #define ARRAY_COUNT(array) (sizeof(array) / sizeof((array)[0]))
+
+/* Keyboard actions of the fork, in KeyAction order (features/key_bindings.h). */
+#define KEY_ACTION_COUNT 8
 
 typedef enum {
     GROUP_DLC,
@@ -45,7 +48,11 @@ typedef enum {
     GROUP_CLUBS,
     GROUP_RIVALS,
     GROUP_VEHICLE_CONTROLS,
-    GROUP_AERO_TUNING
+    GROUP_AERO_TUNING,
+    GROUP_UI_HOOKS,
+    GROUP_HUD_TOGGLE,
+    GROUP_WORLD_CONTROLS,
+    GROUP_LOCAL_MUSIC
 } PatchGroup;
 
 typedef struct {
@@ -90,5 +97,9 @@ typedef struct {
     int reserved_filtering_override;
     int photo_mode_samples;
     int enable_social, enable_clubs, enable_rivals;
+    int hud_toggle;
+    int world_controls;
+    int local_music;
+    int keys[KEY_ACTION_COUNT];
 } ModOptions;
 #endif

@@ -1,6 +1,7 @@
 #include "settings.h"
 #include "features.h"
 #include "support.h"
+#include "features/key_bindings.h"
 
 #define INI_MAX_SIZE 8192
 #define SETTING(section, key, field, type) {section, key, key, offsetof(ModOptions, field), type}
@@ -25,6 +26,20 @@ const SettingDefinition setting_definitions[] = {
     SETTING("PhotoMode", "FreeCamera", free_photo_camera, SETTING_BOOLEAN),
     SETTING("Files", "EnableMediaOverrides", media_overrides, SETTING_BOOLEAN),
     {"Autodrive", "Enabled", "AutodriveEnabled", offsetof(ModOptions, autodrive), SETTING_BOOLEAN},
+    SETTING("HUD", "ToggleHUD", hud_toggle, SETTING_BOOLEAN),
+    SETTING("World", "TimeAndWeatherKeys", world_controls, SETTING_BOOLEAN),
+    SETTING("Music", "LocalMusic", local_music, SETTING_BOOLEAN),
+    {"Keys", "ToggleHUD", "KeyToggleHUD", offsetof(ModOptions, keys[KEY_TOGGLE_HUD]), SETTING_KEY},
+    {"Keys", "NextHour", "KeyNextHour", offsetof(ModOptions, keys[KEY_NEXT_HOUR]), SETTING_KEY},
+    {"Keys", "Weather", "KeyWeather", offsetof(ModOptions, keys[KEY_WEATHER]), SETTING_KEY},
+    {"Keys", "Clock", "KeyClock", offsetof(ModOptions, keys[KEY_CLOCK]), SETTING_KEY},
+    {"Keys", "ClockSpeed", "KeyClockSpeed", offsetof(ModOptions, keys[KEY_CLOCK_SPEED]),
+     SETTING_KEY},
+    {"Keys", "Rain", "KeyRain", offsetof(ModOptions, keys[KEY_RAIN]), SETTING_KEY},
+    {"Keys", "MusicToggle", "KeyMusicToggle", offsetof(ModOptions, keys[KEY_MUSIC_TOGGLE]),
+     SETTING_KEY},
+    {"Keys", "MusicNext", "KeyMusicNext", offsetof(ModOptions, keys[KEY_MUSIC_NEXT]),
+     SETTING_KEY},
 };
 
 static const SettingDefinition legacy_settings[] = {
@@ -78,7 +93,11 @@ void settings_defaults(ModOptions *options) {
         .enable_clubs = 1,
         .enable_rivals = 1,
         .photo_mode_samples = 0,
+        .hud_toggle = 0,
+        .world_controls = 0,
+        .local_music = 0,
     };
+    key_bindings_defaults(options->keys);
 }
 
 int settings_value(const ModOptions *options, const SettingDefinition *definition) {
@@ -134,6 +153,9 @@ static const SettingDefinition *find_setting(const char *section, const char *ke
 }
 
 static int parse_value(const SettingDefinition *definition, const char *text, int *value) {
+    if (definition->type == SETTING_KEY) {
+        return key_binding_parse(text, value);
+    }
     if (definition->type == SETTING_PHOTO_SAMPLES) {
         unsigned samples = 0;
         if (!*text) {

@@ -240,7 +240,9 @@ void autodrive_prepare_hooks(unsigned char *image, const ModOptions *options) {
         autodrive_hook_patches[i] = (PatchDefinition){slots[i],
                                                       0,
                                                       8,
-                                                      GROUP_AUTODRIVE,
+                                                      /* Hooks 6+ wrap UI rendering, which also drives the F3 HUD
+                                                         toggle and the time/weather keys each frame. */
+                                                      i < 6 ? GROUP_AUTODRIVE : GROUP_UI_HOOKS,
                                                       names[i],
                                                       original_pointers[i],
                                                       hook_pointers[i],

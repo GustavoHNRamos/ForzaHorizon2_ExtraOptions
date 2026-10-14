@@ -2,6 +2,7 @@
 #include "features.h"
 #include "settings.h"
 #include "support.h"
+#include "features/key_bindings.h"
 
 static wchar_t runtime_log_path[PATH_CAPACITY];
 static wchar_t startup_log_path[PATH_CAPACITY];
@@ -87,7 +88,13 @@ void log_start(const wchar_t *directory, const ModOptions *options) {
         write_text(file, "\r\n");
         write_text(file, definition->log_name);
         write_text(file, "=");
-        write_number(file, value);
+        if (definition->type == SETTING_KEY) {
+            char name[16];
+            key_binding_describe(value, name, sizeof(name));
+            write_text(file, name);
+        } else {
+            write_number(file, value);
+        }
     }
     write_text(file, "\r\n");
     CloseHandle(file);

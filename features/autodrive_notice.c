@@ -33,6 +33,10 @@ static struct {
     void *status;
 } notice;
 
+/* Value text for notices shown by other features; empty means the Autodrive "On" text. */
+static wchar_t custom_value[48];
+static ULONGLONG custom_shown_at;
+
 static int owner_registered(void) {
     unsigned char *begin, *end;
     unsigned char *hud = notice.hud.object.object;
@@ -81,6 +85,13 @@ static int is_notice_value(void *value, void *parameter) {
 static void **notice_convert(void *self, void **out, void *value, void *type, void *parameter,
                              void *culture) {
     if (out && is_notice_value(value, parameter)) {
+        if (custom_value[0]) {
+            const wchar_t *text = custom_value;
+            ((WideStringFactory)(game + 0xb943d0))(out, &text);
+            if (*out) {
+                return out;
+            }
+        }
         void *manager;
         // GameOptionValues:IDS_DisplayName_29 is the singular "On" option value.
         if (memory_read(game + 0x3662990, &manager, sizeof(manager)) && manager) {
@@ -102,7 +113,7 @@ static void **notice_convert(void *self, void **out, void *value, void *type, vo
 PatchDefinition autodrive_notice_hook_patch = {CONVERTER_SLOT,
                                                0,
                                                8,
-                                               GROUP_AUTODRIVE,
+                                               GROUP_UI_HOOKS,
                                                "autodrive_notice_text",
                                                original_pointer,
                                                replacement_pointer,
@@ -119,7 +130,7 @@ void autodrive_notice_prepare(unsigned char *image) {
     memory_copy(replacement_pointer, &replacement, sizeof(replacement));
 }
 
-int autodrive_notice_show(void) {
+static int notice_begin(void) {
     autodrive_notice_clear();
     unsigned category_ready;
     if (!memory_read(game + 0x34e1e38, &category_ready, sizeof(category_ready)) ||
@@ -127,9 +138,11 @@ int autodrive_notice_show(void) {
         autodrive_notice_clear();
         return 0;
     }
-    const char *label = "AUTODRIVE";
-    void *title = 0, *status = 0;
-    ((StringFactory)(game + 0x3d9820))(&title, &label);
+    return 1;
+}
+
+static int notice_submit(void *title) {
+    void *status = 0;
     if (title) {
         ((StatusFactory)(game + 0xac59b0))(&status);
     }
@@ -145,6 +158,43 @@ int autodrive_notice_show(void) {
     InterlockedIncrement((volatile LONG *)((unsigned char *)status + 0x10));
     ((StatusSubmit)(game + 0x777db0))(notice.hud.wrapper.object, &status);
     return 1;
+}
+
+int autodrive_notice_show(void) {
+    custom_value[0] = 0;
+    if (!notice_begin()) {
+        return 0;
+    }
+    const char *label = "AUTODRIVE";
+    void *title = 0;
+    ((StringFactory)(game + 0x3d9820))(&title, &label);
+    return notice_submit(title);
+}
+
+/* The title goes through the wide-string factory: the char* one sign-extends each byte, which
+   breaks accented letters. The value replaces the Autodrive "On" text in the converter. */
+int autodrive_notice_show_text(const wchar_t *title_text, const wchar_t *value_text) {
+    if (!notice_begin()) {
+        return 0;
+    }
+    size_t length = 0;
+    while (value_text[length] && length + 1 < ARRAY_COUNT(custom_value)) {
+        custom_value[length] = value_text[length];
+        ++length;
+    }
+    custom_value[length] = 0;
+    custom_shown_at = GetTickCount64();
+    void *title = 0;
+    ((WideStringFactory)(game + 0xb943d0))(&title, &title_text);
+    return notice_submit(title);
+}
+
+void autodrive_notice_expire_text(void) {
+    if (notice.status && custom_value[0] &&
+        GetTickCount64() - custom_shown_at >= (ULONGLONG)(NOTICE_DURATION * 1000.0f)) {
+        autodrive_notice_clear();
+        custom_value[0] = 0;
+    }
 }
 
 void autodrive_notice_update(float elapsed) {

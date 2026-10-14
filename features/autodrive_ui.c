@@ -1,4 +1,6 @@
 #include "autodrive_ui.h"
+#include "features.h"
+#include "key_bindings.h"
 #include "support.h"
 
 typedef void (*DrawScreenFn)(void *, void *, void *);
@@ -23,6 +25,10 @@ void autodrive_ui_present(void *application, void *transform) {
 }
 
 void autodrive_ui_draw(void *application, void *screen, void *transform) {
+    key_bindings_frame();
+    hud_toggle_frame();
+    world_controls_frame();
+    local_music_frame();
     if (!InterlockedCompareExchange(&rendering_disabled, 0, 0)) {
         ((DrawScreenFn)(game_image + 0x15b51a0))(application, screen, transform);
         return;
