@@ -7,4 +7,6 @@ void autodrive_notice_prepare(unsigned char *image);
 int autodrive_notice_show(void);
 void autodrive_notice_update(float elapsed);
 void autodrive_notice_clear(void);
+int autodrive_notice_show_text(const wchar_t *title, const wchar_t *value);
+void autodrive_notice_expire_text(void);
 #endif
