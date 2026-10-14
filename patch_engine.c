@@ -4,6 +4,7 @@
 #include "features/roof_fade.h"
 #include "patches_generated.h"
 #include "support.h"
+#include "features/key_bindings.h"
 
 typedef struct {
     uintptr_t address;
@@ -67,7 +68,13 @@ static const PatchDefinition *const callback_patches[] = {&garage_hook_patch,
                                                           &camera_fov_hook_patches[3],
                                                           &camera_fov_hook_patches[4],
                                                           &camera_fov_hook_patches[5],
-                                                          &photo_sampling_patch};
+                                                          &photo_sampling_patch,
+                                                          &hud_toggle_hook_patches[0],
+                                                          &hud_toggle_hook_patches[1],
+                                                          &hud_toggle_hook_patches[2],
+                                                          &hud_toggle_hook_patches[3],
+                                                          &world_controls_hook_patch,
+                                                          &local_music_buffer_patch};
 
 enum { ALL_PATCH_COUNT = FIXED_PATCH_COUNT + ARRAY_COUNT(callback_patches) };
 
@@ -113,6 +120,16 @@ static int patch_group_enabled(PatchGroup group, const ModOptions *options) {
             return 1;
         case GROUP_AUTODRIVE:
             return options->autodrive;
+        case GROUP_UI_HOOKS:
+            return options->autodrive || options->hud_toggle || options->world_controls ||
+                   options->local_music;
+        case GROUP_HUD_TOGGLE:
+            return options->hud_toggle;
+        case GROUP_WORLD_CONTROLS:
+            /* The simulation hook also drives the local music player. */
+            return options->world_controls || options->local_music;
+        case GROUP_LOCAL_MUSIC:
+            return options->local_music;
         case GROUP_TREASURE_MAP:
             return options->unlock_treasure_map;
         case GROUP_PHOTO_CAMERA:
@@ -402,6 +419,10 @@ int patch_engine_apply(unsigned char *game_image, const ModOptions *options) {
     video_options_prepare_hooks(game_image);
     media_overrides_prepare_hook(game_image);
     autodrive_prepare_hooks(game_image, options);
+    key_bindings_prepare(options);
+    hud_toggle_prepare_hooks(game_image, options);
+    world_controls_prepare_hook(game_image, options);
+    local_music_prepare(game_image, options);
 
     PatchTransaction transaction;
     transaction.game_image = game_image;

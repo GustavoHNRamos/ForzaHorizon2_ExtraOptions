@@ -1,3 +1,73 @@
+# Forza Horizon 2 - Extra Options (time, weather and music fork)
+
+This is a fork of [RokkuDayo's Forza Horizon 2 - Extra Options](https://github.com/RokkuDayo/forzahorizon2_extraoptions). It keeps every feature of the original and adds keyboard controls for the HUD, the time of day, the weather and a local music player. **It targets Azimuth only** (built and tested with Azimuth 0.9.9); the Mezcal adapter is kept from the original but is not built or tested here.
+
+## What this fork adds
+
+| Action | Default key | What it does |
+|---|---|---|
+| ToggleHUD | F3 | Hides or shows the HUD (speedometer, minimap, notifications), like the game's own `nohud` debug option. Menus and in-car dashboard displays are not affected. |
+| NextHour | F5 | Advances the time of day by one hour. |
+| Weather | F6 | Cycles the weather: automatic, frozen as it is now, each weather preset, then automatic again. |
+| Clock | F7 | Cycles the clock: running, stopped, following your PC's local time. |
+| ClockSpeed | `[` | Cycles the clock speed: normal, 4x, 16x, 0.25x. |
+| Rain | `]` | Cycles the rain: automatic, none, light, medium, heavy. |
+| MusicToggle | Home | Turns the local music player on or off. |
+| MusicNext | End | Skips to the next song. |
+
+Each change shows a short pop-up in the HUD (the one Autodrive uses), in the game's text language: English, Brazilian Portuguese, German, French, Spanish (Spain and Mexico), Italian, Japanese, Traditional Chinese, Polish and Russian. Other languages fall back to English.
+
+> **Translations wanted.** The non-English texts were written without native review, so some may sound unnatural, especially Japanese, Traditional Chinese, Russian and Polish. Corrections are welcome as issues or pull requests; every text is in `features/fork_text.c`.
+
+Events and Bucket List challenges can override the time and weather you pick.
+
+### Local music
+
+The Xbox One version could play your Xbox Music playlists through the radio. That service is gone, but the code is still in the game. This fork feeds it your own songs: the game decodes them with Media Foundation and plays them through its radio, with the title and artist (from ID3 tags or the file name) in the pop-up.
+
+1. Create a folder named `LocalMusic` beside `forza_durango_release_final.exe` (the game's `Mount` folder) and copy your songs into it. Subfolders are fine.
+2. In the game, press MusicToggle (Home). Changing station with the D-pad leaves the music player.
+
+Limits:
+- **MP3 only.** FLAC and M4A do not open in Media Foundation under Wine. Other formats depend on the system.
+- **Real files inside Mount.** Azimuth refuses symbolic links and file names with accents or symbols; such files are skipped.
+- The game's radio volume still applies. `Volume` in `FH2_Music.ini` raises the music level (default 200%).
+
+## Configuration
+
+The [extras](extras) folder has the files to place beside `azimuth-tls.dll` in `Azimuth\data\bin`:
+
+- `FH2_ExtraOptions.ini`: the original options plus the fork's `[HUD]`, `[World]`, `[Music]` and `[Keys]` sections. Each feature can be turned off there.
+- `FH2_Music.ini` (optional): music file types, folders to skip, volume, and the music folder.
+
+### Keys
+
+Every action has a line in `[Keys]`. A key can be `F1`-`F24`, a letter or digit, a name (`Home`, `End`, `Insert`, `Delete`, `PageUp`, `PageDown`, arrows `Up`/`Down`/`Left`/`Right`, `Tab`, `Space`, `Backspace`, `Enter`, `Pause`, `ScrollLock`, `CapsLock`, `Numpad0`-`Numpad9`, `NumpadAdd`, `NumpadSubtract`, `NumpadMultiply`, `NumpadDivide`, `NumpadDecimal`), a punctuation character such as `[` (it follows your keyboard layout), or a virtual-key code such as `0x24`. `;` and `#` start a comment in the INI, so use their virtual-key codes. Avoid `Esc`, which Azimuth uses to quit.
+
+When the game starts, `FH2_ExtraOptions.log` lists each enabled action with the name Windows gives its key, and warns when two actions share a key.
+
+## Installation
+
+Same as the original, for Azimuth: copy `azimuth-tls.dll`, `FH2_ExtraOptions.ini`, `Gamerpic.png` and, if you want, `FH2_Music.ini` into `Azimuth\data\bin`, replacing the existing DLL.
+
+## How it works
+
+Like the original, everything happens in memory; no game or Azimuth file is changed. The fork reuses what the game already has:
+
+- **HUD**: the Opacity of the game's Hud and Notifications controls, captured from their vtables (the `nohud` debug path).
+- **Time and weather**: the TimeOfDay fields and the WeatherManager requests used by the Bucket List challenges and the `timespeed`, `timestopped`, `pauseweather` and `weather*intensity` debug options, driven from ForzaSimulation's per-frame update on the game thread.
+- **Music**: the radio's Xbox Music path (`RadioSystem`, `SongStream`, Media Foundation `MFCreateSourceReaderFromURL`, FMOD event `event:/Master/Radio/XboxLiveStreaming`). This build never enables the FMOD sink for it, so the fork builds that sink from the engine's FMOD Studio system.
+
+Addresses and hooks are listed in `patches.json` (`runtime_hooks`) and commented in `features/hud_toggle.c`, `features/world_controls.c`, `features/local_music.c`, `features/key_bindings.c` and `features/fork_text.c`.
+
+## Credits
+
+All original features and the mod framework are by Arthur (RokkuDayo). The fork additions were researched with Ghidra and written with the help of an AI assistant (Claude), following the original's disclosure. Licensed under the GNU GPL v3, like the original.
+
+---
+
+# Original README
+
 # Forza Horizon 2 - Extra Options
 A quality-of-life mod for the Xbox One version of Forza Horizon 2 that adds several tweaks to the game.
 

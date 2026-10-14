@@ -47,3 +47,4 @@ EXPORTS
     ReleaseSRWLockShared
     AcquireSRWLockExclusive
     ReleaseSRWLockExclusive
+    GetLocalTime
