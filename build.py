@@ -40,6 +40,11 @@ COMMON_SOURCES = [
     "features/autodrive_game.c",
     "features/autodrive_notice.c",
     "features/autodrive_ui.c",
+    "features/key_bindings.c",
+    "features/fork_text.c",
+    "features/hud_toggle.c",
+    "features/world_controls.c",
+    "features/local_music.c",
     "features/png_validation.c",
     "features/png_decode.c",
 ]

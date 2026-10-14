@@ -1229,64 +1229,64 @@
       "id": "autodrive_ui_wait_render",
       "rva": 48754752,
       "original_function_rva": 18091728,
-      "runtime_group": "AUTODRIVE",
+      "runtime_group": "UI_HOOKS",
       "type": "relocated_vtable_pointer",
       "file_normalized": false,
-      "option": "Autodrive.Enabled"
+      "option": "Autodrive.Enabled|HUD.ToggleHUD|World.TimeAndWeatherKeys|Music.LocalMusic"
     },
     {
       "id": "autodrive_notice_text",
       "rva": 49084104,
       "original_function_rva": 21014528,
-      "runtime_group": "AUTODRIVE",
+      "runtime_group": "UI_HOOKS",
       "type": "relocated_vtable_pointer",
       "file_normalized": false,
-      "option": "Autodrive.Enabled"
+      "option": "Autodrive.Enabled|HUD.ToggleHUD|World.TimeAndWeatherKeys|Music.LocalMusic"
     },
     {
       "id": "autodrive_ui_draw",
       "rva": 49085096,
       "original_function_rva": 22761888,
-      "runtime_group": "AUTODRIVE",
+      "runtime_group": "UI_HOOKS",
       "type": "relocated_vtable_pointer",
       "file_normalized": false,
-      "option": "Autodrive.Enabled"
+      "option": "Autodrive.Enabled|HUD.ToggleHUD|World.TimeAndWeatherKeys|Music.LocalMusic"
     },
     {
       "id": "autodrive_ui_present",
       "rva": 49085088,
       "original_function_rva": 22761744,
-      "runtime_group": "AUTODRIVE",
+      "runtime_group": "UI_HOOKS",
       "type": "relocated_vtable_pointer",
       "file_normalized": false,
-      "option": "Autodrive.Enabled"
+      "option": "Autodrive.Enabled|HUD.ToggleHUD|World.TimeAndWeatherKeys|Music.LocalMusic"
     },
     {
       "id": "autodrive_ui_wait_render_plain",
       "rva": 48771752,
       "original_function_rva": 18091728,
-      "runtime_group": "AUTODRIVE",
+      "runtime_group": "UI_HOOKS",
       "type": "relocated_vtable_pointer",
       "file_normalized": false,
-      "option": "Autodrive.Enabled"
+      "option": "Autodrive.Enabled|HUD.ToggleHUD|World.TimeAndWeatherKeys|Music.LocalMusic"
     },
     {
       "id": "autodrive_ui_draw_base",
       "rva": 49320072,
       "original_function_rva": 22761888,
-      "runtime_group": "AUTODRIVE",
+      "runtime_group": "UI_HOOKS",
       "type": "relocated_vtable_pointer",
       "file_normalized": false,
-      "option": "Autodrive.Enabled"
+      "option": "Autodrive.Enabled|HUD.ToggleHUD|World.TimeAndWeatherKeys|Music.LocalMusic"
     },
     {
       "id": "autodrive_ui_present_base",
       "rva": 49320064,
       "original_function_rva": 22761744,
-      "runtime_group": "AUTODRIVE",
+      "runtime_group": "UI_HOOKS",
       "type": "relocated_vtable_pointer",
       "file_normalized": false,
-      "option": "Autodrive.Enabled"
+      "option": "Autodrive.Enabled|HUD.ToggleHUD|World.TimeAndWeatherKeys|Music.LocalMusic"
     },
     {
       "id": "minimap_camera_heading_callback",
@@ -1500,6 +1500,67 @@
       "type": "callback_thunk_in_unused_padding",
       "file_normalized": false,
       "option": "Frontend.AllRimsCategory"
+    },
+    {
+      "id": "hud_toggle_hud_init",
+      "rva": 48168528,
+      "original_function_rva": 13864400,
+      "runtime_group": "HUD_TOGGLE",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "HUD.ToggleHUD",
+      "description": "Hud vtable slot 145, the initializer that checks the nohud debug option; captures the Hud control so the HUD key can set its AVUI Opacity."
+    },
+    {
+      "id": "hud_toggle_hud_destroy",
+      "rva": 48167368,
+      "original_function_rva": 13780160,
+      "runtime_group": "HUD_TOGGLE",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "HUD.ToggleHUD",
+      "description": "Hud vtable slot 0, the deleting destructor; forgets the captured control."
+    },
+    {
+      "id": "hud_toggle_notifications_init",
+      "rva": 48249960,
+      "original_function_rva": 14163584,
+      "runtime_group": "HUD_TOGGLE",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "HUD.ToggleHUD",
+      "description": "Notifications vtable slot 145; captures the control like the Hud."
+    },
+    {
+      "id": "hud_toggle_notifications_destroy",
+      "rva": 48248800,
+      "original_function_rva": 14081520,
+      "runtime_group": "HUD_TOGGLE",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "HUD.ToggleHUD",
+      "description": "Notifications vtable slot 0; forgets the captured control."
+    },
+    {
+      "id": "world_controls_simulation_update",
+      "rva": 46529368,
+      "original_function_rva": 3127536,
+      "runtime_group": "WORLD_CONTROLS",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "World.TimeAndWeatherKeys|Music.LocalMusic",
+      "description": "ForzaSimulation vtable slot 15, the per-frame update on the game thread; applies queued time, weather and local music actions (TimeOfDay at +0x480, WeatherManager at +0x488, RadioSystem global at RVA 0x365d410)."
+    },
+    {
+      "id": "local_music_stream_buffer",
+      "rva": 16879694,
+      "original": "c744244800100000",
+      "patched": "c744244800400000",
+      "runtime_group": "LOCAL_MUSIC",
+      "type": "code_bytes",
+      "file_normalized": false,
+      "option": "Music.LocalMusic",
+      "description": "decodebuffersize of the Xbox Music programmer-sound stream (FUN_141018fe0) raised from 0x1000 to 0x4000 samples to avoid underruns under Wine's Media Foundation."
     }
   ],
   "runtime_data": [

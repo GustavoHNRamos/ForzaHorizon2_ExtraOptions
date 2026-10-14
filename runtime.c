@@ -37,6 +37,16 @@ static void log_enabled_features(const wchar_t *settings_directory, const ModOpt
                    "delay is 3 "
                    "seconds.\r\n");
     }
+    if (options->hud_toggle) {
+        log_append("HUD: toggle key installed; Hud and Notifications opacity hooks ready.\r\n");
+    }
+    if (options->world_controls) {
+        log_append("WORLD: time and weather keys installed.\r\n");
+    }
+    if (options->local_music) {
+        log_append("MUSIC: local music installed; songs are read from LocalMusic beside the "
+                   "game EXE.\r\n");
+    }
     if (options->all_rims_category) {
         log_append("UPGRADES: virtual All Rims category enabled; database file "
                    "unchanged.\r\n");
@@ -58,6 +68,7 @@ int runtime_initialize(unsigned char *game_image, const wchar_t *executable_path
     ModOptions options;
     settings_defaults(&options);
     gamerpic_set_directory(settings_directory);
+    local_music_set_paths(settings_directory, executable_path);
     log_reset();
     int initialized = settings_read(settings_directory, &options);
     if (initialized) {

@@ -36,3 +36,4 @@ EXPORTS
     MoveFileExW
     DeleteFileW
     GetTickCount64
+    GetLocalTime
