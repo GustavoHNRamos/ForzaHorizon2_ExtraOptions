@@ -44,12 +44,13 @@ static const struct {
 static const char *const action_names[KEY_ACTION_TOTAL] = {
     "ToggleHUD", "NextHour", "Weather", "Clock", "ClockSpeed", "Rain", "MusicToggle", "MusicNext"};
 
-static int keys[KEY_ACTION_TOTAL], used[KEY_ACTION_TOTAL];
+static int configured[KEY_ACTION_TOTAL], keys[KEY_ACTION_TOTAL], used[KEY_ACTION_TOTAL];
 static int was_down[KEY_ACTION_TOTAL], pressed[KEY_ACTION_TOTAL];
 static int input_state; /* 0 untried, 1 ready, -1 unavailable */
 static KeyStateFn key_state;
 static ForegroundFn foreground_window;
 static WindowProcessFn window_process;
+static KeyScanFn key_scan;
 
 void key_bindings_defaults(int defaults[KEY_ACTION_COUNT]) {
     static const int values[KEY_ACTION_TOTAL] = {VK_F3,
@@ -67,6 +68,10 @@ void key_bindings_defaults(int defaults[KEY_ACTION_COUNT]) {
 
 int key_binding_parse(const char *text, int *value) {
     size_t length = text_length(text);
+    if (text_equal_ignore_case(text, "None")) {
+        *value = 0;
+        return 1;
+    }
     if ((text[0] == 'F' || text[0] == 'f') && length >= 2 && length <= 3) {
         int number = 0;
         for (size_t i = 1; i < length; ++i) {
@@ -133,7 +138,9 @@ int key_binding_parse(const char *text, int *value) {
 void key_binding_describe(int value, char *out, size_t capacity) {
     const char *name = 0;
     char buffer[8] = {0};
-    if (value & KEY_CHARACTER) {
+    if (!value) {
+        name = "None";
+    } else if (value & KEY_CHARACTER) {
         buffer[0] = (char)(value & 0x7f);
         name = buffer;
     } else if (value >= VK_F1 && value <= VK_F24) {
@@ -174,7 +181,7 @@ void key_binding_describe(int value, char *out, size_t capacity) {
 
 void key_bindings_prepare(const ModOptions *options) {
     for (unsigned i = 0; i < KEY_ACTION_TOTAL; ++i) {
-        keys[i] = options->keys[i];
+        configured[i] = keys[i] = options->keys[i];
     }
     used[KEY_TOGGLE_HUD] = options->hud_toggle;
     for (unsigned i = KEY_NEXT_HOUR; i <= KEY_RAIN; ++i) {
@@ -241,6 +248,14 @@ static void log_keys(MapKeyFn map_key, KeyNameFn key_name) {
     }
 }
 
+static int resolve(int value) {
+    if (!(value & KEY_CHARACTER)) {
+        return value;
+    }
+    SHORT scanned = key_scan ? key_scan((WCHAR)(value & 0xffff)) : -1;
+    return scanned != -1 ? scanned & 0xff : 0;
+}
+
 static int initialize_input(void) {
     if (input_state) {
         return input_state > 0;
@@ -255,7 +270,7 @@ static int initialize_input(void) {
     foreground_window = (ForegroundFn)(uintptr_t)GetProcAddress(module, "GetForegroundWindow");
     window_process =
         (WindowProcessFn)(uintptr_t)GetProcAddress(module, "GetWindowThreadProcessId");
-    KeyScanFn key_scan = (KeyScanFn)(uintptr_t)GetProcAddress(module, "VkKeyScanW");
+    key_scan = (KeyScanFn)(uintptr_t)GetProcAddress(module, "VkKeyScanW");
     MapKeyFn map_key = (MapKeyFn)(uintptr_t)GetProcAddress(module, "MapVirtualKeyW");
     KeyNameFn key_name = (KeyNameFn)(uintptr_t)GetProcAddress(module, "GetKeyNameTextW");
     if (!key_state || !foreground_window || !window_process) {
@@ -263,10 +278,7 @@ static int initialize_input(void) {
         return 0;
     }
     for (unsigned i = 0; i < KEY_ACTION_TOTAL; ++i) {
-        if (keys[i] & KEY_CHARACTER) {
-            SHORT scanned = key_scan ? key_scan((WCHAR)(keys[i] & 0xffff)) : -1;
-            keys[i] = scanned != -1 ? scanned & 0xff : 0;
-        }
+        keys[i] = resolve(configured[i]);
     }
     log_keys(map_key, key_name);
     input_state = 1;
@@ -295,4 +307,17 @@ void key_bindings_frame(void) {
 
 int key_bindings_pressed(KeyAction action) {
     return pressed[action];
+}
+
+int key_bindings_get(KeyAction action) {
+    return configured[action];
+}
+
+/* A key chosen in the menu takes effect at once; held keys wait for release before firing. */
+void key_bindings_set(KeyAction action, int value) {
+    configured[action] = value;
+    if (input_state > 0) {
+        keys[action] = resolve(value);
+    }
+    was_down[action] = 1;
 }

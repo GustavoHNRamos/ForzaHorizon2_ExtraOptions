@@ -6,6 +6,19 @@
    Presets follow media/weather/Presets_Island.xml (14); the mainland list (9) is a subset. */
 
 static const ForkText english = {
+    .menu = {.hud = L"HUD Key",
+             .world = L"Time and Weather Keys",
+             .music = L"My Music",
+             .volume = L"My Music Volume",
+             .hud_info = L"Lets a key hide and show the HUD. Restart the game to apply.",
+             .world_info = L"Keys for the hour, weather, clock, time speed and rain. Restart the game to apply.",
+             .music_info = L"Plays the MP3 files in the LocalMusic folder through the radio. Restart the game to apply.",
+             .volume_info = L"Level of your songs before the game's radio volume. 100% is the game's own level, which is quiet.",
+             .key_info = L"Keyboard key for this action. Other (INI) is a key set in FH2_ExtraOptions.ini.",
+             .key = L"Key",
+             .actions = {L"Hide HUD", L"Next Hour", L"Weather", L"Clock", L"Time Speed", L"Rain", L"My Music On/Off", L"Next Song"},
+             .none = L"None",
+             .other = L"Other (INI)"},
     .hour = L"HOUR",
     .weather = L"WEATHER",
     .rain = L"RAIN",
@@ -30,6 +43,19 @@ static const ForkText english = {
                 L"Tropical storm with fog"}};
 
 static const ForkText brazilian = {
+    .menu = {.hud = L"Tecla do HUD",
+             .world = L"Teclas de hora e clima",
+             .music = L"Minha música",
+             .volume = L"Volume da Minha música",
+             .hud_info = L"Permite esconder e mostrar o HUD com uma tecla. Reinicie o jogo para aplicar.",
+             .world_info = L"Teclas para hora, clima, relógio, velocidade do tempo e chuva. Reinicie o jogo para aplicar.",
+             .music_info = L"Toca os arquivos MP3 da pasta LocalMusic pelo rádio. Reinicie o jogo para aplicar.",
+             .volume_info = L"Nível das suas músicas antes do volume do rádio do jogo. 100% é o nível original, que é baixo.",
+             .key_info = L"Tecla do teclado para esta ação. Outra (INI) é uma tecla definida no FH2_ExtraOptions.ini.",
+             .key = L"Tecla",
+             .actions = {L"Esconder HUD", L"Próxima hora", L"Clima", L"Relógio", L"Velocidade do tempo", L"Chuva", L"Minha música liga/desliga", L"Próxima música"},
+             .none = L"Nenhuma",
+             .other = L"Outra (INI)"},
     .hour = L"HORA",
     .weather = L"CLIMA",
     .rain = L"CHUVA",
@@ -55,6 +81,19 @@ static const ForkText brazilian = {
                 L"Tempestade tropical com neblina"}};
 
 static const ForkText german = {
+    .menu = {.hud = L"HUD-Taste",
+             .world = L"Tasten für Zeit und Wetter",
+             .music = L"Meine Musik",
+             .volume = L"Lautstärke Meine Musik",
+             .hud_info = L"Mit einer Taste das HUD aus- und einblenden. Neustart zum Übernehmen nötig.",
+             .world_info = L"Tasten für Uhrzeit, Wetter, Uhr, Zeitgeschwindigkeit und Regen. Neustart zum Übernehmen nötig.",
+             .music_info = L"Spielt die MP3-Dateien im Ordner LocalMusic über das Radio ab. Neustart zum Übernehmen nötig.",
+             .volume_info = L"Pegel deiner Songs vor der Radiolautstärke des Spiels. 100 % ist der eigene, leise Pegel des Spiels.",
+             .key_info = L"Tastaturtaste für diese Aktion. Andere (INI) ist eine in FH2_ExtraOptions.ini gesetzte Taste.",
+             .key = L"Taste",
+             .actions = {L"HUD ausblenden", L"Nächste Stunde", L"Wetter", L"Uhr", L"Zeitgeschwindigkeit", L"Regen", L"Meine Musik an/aus", L"Nächster Song"},
+             .none = L"Keine",
+             .other = L"Andere (INI)"},
     .hour = L"UHRZEIT",
     .weather = L"WETTER",
     .rain = L"REGEN",
@@ -79,6 +118,19 @@ static const ForkText german = {
                 L"Tropensturm mit Nebel"}};
 
 static const ForkText french = {
+    .menu = {.hud = L"Touche du HUD",
+             .world = L"Touches de l'heure et de la météo",
+             .music = L"Ma musique",
+             .volume = L"Volume de Ma musique",
+             .hud_info = L"Permet de masquer et d'afficher le HUD avec une touche. Redémarrez le jeu pour appliquer.",
+             .world_info = L"Touches pour l'heure, la météo, l'horloge, la vitesse du temps et la pluie. Redémarrez le jeu pour appliquer.",
+             .music_info = L"Lit les fichiers MP3 du dossier LocalMusic via la radio. Redémarrez le jeu pour appliquer.",
+             .volume_info = L"Niveau de vos morceaux avant le volume de la radio du jeu. 100 % correspond au niveau d'origine, assez faible.",
+             .key_info = L"Touche du clavier pour cette action. Autre (INI) est une touche définie dans FH2_ExtraOptions.ini.",
+             .key = L"Touche",
+             .actions = {L"Masquer le HUD", L"Heure suivante", L"Météo", L"Horloge", L"Vitesse du temps", L"Pluie", L"Ma musique on/off", L"Morceau suivant"},
+             .none = L"Aucune",
+             .other = L"Autre (INI)"},
     .hour = L"HEURE",
     .weather = L"MÉTÉO",
     .rain = L"PLUIE",
@@ -104,6 +156,19 @@ static const ForkText french = {
                 L"Tempête tropicale avec brouillard"}};
 
 static const ForkText spanish = {
+    .menu = {.hud = L"Tecla del HUD",
+             .world = L"Teclas de hora y clima",
+             .music = L"Mi música",
+             .volume = L"Volumen de Mi música",
+             .hud_info = L"Permite ocultar y mostrar el HUD con una tecla. Reinicia el juego para aplicar.",
+             .world_info = L"Teclas para la hora, el clima, el reloj, la velocidad del tiempo y la lluvia. Reinicia el juego para aplicar.",
+             .music_info = L"Reproduce los archivos MP3 de la carpeta LocalMusic a través de la radio. Reinicia el juego para aplicar.",
+             .volume_info = L"Nivel de tus canciones antes del volumen de la radio del juego. 100 % es el nivel original, que es bajo.",
+             .key_info = L"Tecla del teclado para esta acción. Otra (INI) es una tecla definida en FH2_ExtraOptions.ini.",
+             .key = L"Tecla",
+             .actions = {L"Ocultar HUD", L"Hora siguiente", L"Clima", L"Reloj", L"Velocidad del tiempo", L"Lluvia", L"Mi música sí/no", L"Siguiente canción"},
+             .none = L"Ninguna",
+             .other = L"Otra (INI)"},
     .hour = L"HORA",
     .weather = L"CLIMA",
     .rain = L"LLUVIA",
@@ -128,6 +193,19 @@ static const ForkText spanish = {
                 L"Tormenta tropical 1", L"Tormenta tropical 2", L"Tormenta tropical con niebla"}};
 
 static const ForkText mexican = {
+    .menu = {.hud = L"Tecla del HUD",
+             .world = L"Teclas de hora y clima",
+             .music = L"Mi música",
+             .volume = L"Volumen de Mi música",
+             .hud_info = L"Permite ocultar y mostrar el HUD con una tecla. Reinicia el juego para aplicar.",
+             .world_info = L"Teclas para la hora, el clima, el reloj, la velocidad del tiempo y la lluvia. Reinicia el juego para aplicar.",
+             .music_info = L"Reproduce los archivos MP3 de la carpeta LocalMusic a través de la radio. Reinicia el juego para aplicar.",
+             .volume_info = L"Nivel de tus canciones antes del volumen de la radio del juego. 100 % es el nivel original, que es bajo.",
+             .key_info = L"Tecla del teclado para esta acción. Otra (INI) es una tecla definida en FH2_ExtraOptions.ini.",
+             .key = L"Tecla",
+             .actions = {L"Ocultar HUD", L"Hora siguiente", L"Clima", L"Reloj", L"Velocidad del tiempo", L"Lluvia", L"Mi música sí/no", L"Siguiente canción"},
+             .none = L"Ninguna",
+             .other = L"Otra (INI)"},
     .hour = L"HORA",
     .weather = L"CLIMA",
     .rain = L"LLUVIA",
@@ -152,6 +230,19 @@ static const ForkText mexican = {
                 L"Tormenta tropical 1", L"Tormenta tropical 2", L"Tormenta tropical con niebla"}};
 
 static const ForkText italian = {
+    .menu = {.hud = L"Tasto HUD",
+             .world = L"Tasti di ora e meteo",
+             .music = L"La mia musica",
+             .volume = L"Volume de La mia musica",
+             .hud_info = L"Permette di nascondere e mostrare l'HUD con un tasto. Riavvia il gioco per applicare.",
+             .world_info = L"Tasti per ora, meteo, orologio, velocità del tempo e pioggia. Riavvia il gioco per applicare.",
+             .music_info = L"Riproduce i file MP3 della cartella LocalMusic tramite la radio. Riavvia il gioco per applicare.",
+             .volume_info = L"Livello dei tuoi brani prima del volume della radio del gioco. 100% è il livello originale, piuttosto basso.",
+             .key_info = L"Tasto della tastiera per questa azione. Altro (INI) è un tasto impostato in FH2_ExtraOptions.ini.",
+             .key = L"Tasto",
+             .actions = {L"Nascondi HUD", L"Ora successiva", L"Meteo", L"Orologio", L"Velocità del tempo", L"Pioggia", L"La mia musica sì/no", L"Brano successivo"},
+             .none = L"Nessuno",
+             .other = L"Altro (INI)"},
     .hour = L"ORA",
     .weather = L"METEO",
     .rain = L"PIOGGIA",
@@ -177,6 +268,19 @@ static const ForkText italian = {
                 L"Tempesta tropicale con nebbia"}};
 
 static const ForkText polish = {
+    .menu = {.hud = L"Klawisz HUD",
+             .world = L"Klawisze czasu i pogody",
+             .music = L"Moja muzyka",
+             .volume = L"Głośność Mojej muzyki",
+             .hud_info = L"Pozwala ukrywać i pokazywać HUD klawiszem. Uruchom grę ponownie, aby zastosować.",
+             .world_info = L"Klawisze godziny, pogody, zegara, prędkości czasu i deszczu. Uruchom grę ponownie, aby zastosować.",
+             .music_info = L"Odtwarza pliki MP3 z folderu LocalMusic przez radio. Uruchom grę ponownie, aby zastosować.",
+             .volume_info = L"Poziom twoich utworów przed głośnością radia w grze. 100% to oryginalny, cichy poziom gry.",
+             .key_info = L"Klawisz dla tej akcji. Inny (INI) to klawisz ustawiony w FH2_ExtraOptions.ini.",
+             .key = L"Klawisz",
+             .actions = {L"Ukryj HUD", L"Następna godzina", L"Pogoda", L"Zegar", L"Prędkość czasu", L"Deszcz", L"Moja muzyka wł./wył.", L"Następny utwór"},
+             .none = L"Brak",
+             .other = L"Inny (INI)"},
     .hour = L"GODZINA",
     .weather = L"POGODA",
     .rain = L"DESZCZ",
@@ -201,6 +305,19 @@ static const ForkText polish = {
                 L"Burza tropikalna 1", L"Burza tropikalna 2", L"Burza tropikalna z mgłą"}};
 
 static const ForkText russian = {
+    .menu = {.hud = L"Клавиша HUD",
+             .world = L"Клавиши времени и погоды",
+             .music = L"Моя музыка",
+             .volume = L"Громкость «Моей музыки»",
+             .hud_info = L"Позволяет скрывать и показывать HUD клавишей. Перезапустите игру, чтобы применить.",
+             .world_info = L"Клавиши для часа, погоды, часов, скорости времени и дождя. Перезапустите игру, чтобы применить.",
+             .music_info = L"Воспроизводит MP3-файлы из папки LocalMusic через радио. Перезапустите игру, чтобы применить.",
+             .volume_info = L"Уровень ваших треков до громкости радио в игре. 100% — исходный, тихий уровень игры.",
+             .key_info = L"Клавиша для этого действия. «Другая (INI)» — клавиша, заданная в FH2_ExtraOptions.ini.",
+             .key = L"Клавиша",
+             .actions = {L"Скрыть HUD", L"Следующий час", L"Погода", L"Часы", L"Скорость времени", L"Дождь", L"Моя музыка вкл./выкл.", L"Следующий трек"},
+             .none = L"Нет",
+             .other = L"Другая (INI)"},
     .hour = L"ВРЕМЯ СУТОК",
     .weather = L"ПОГОДА",
     .rain = L"ДОЖДЬ",
@@ -225,6 +342,19 @@ static const ForkText russian = {
                 L"Тропический шторм с туманом"}};
 
 static const ForkText japanese = {
+    .menu = {.hud = L"HUDキー",
+             .world = L"時刻と天候のキー",
+             .music = L"マイミュージック",
+             .volume = L"マイミュージックの音量",
+             .hud_info = L"キーでHUDの表示・非表示を切り替えます。適用するにはゲームを再起動してください。",
+             .world_info = L"時刻、天候、時計、時間の速さ、雨のキーです。適用するにはゲームを再起動してください。",
+             .music_info = L"LocalMusicフォルダーのMP3ファイルをラジオで再生します。適用するにはゲームを再起動してください。",
+             .volume_info = L"ゲームのラジオ音量を適用する前の曲の音量です。100%はゲーム本来の小さめの音量です。",
+             .key_info = L"この操作に使うキーです。「その他 (INI)」はFH2_ExtraOptions.iniで設定したキーです。",
+             .key = L"キー",
+             .actions = {L"HUDを隠す", L"次の時刻", L"天候", L"時計", L"時間の速さ", L"雨", L"マイミュージック オン/オフ", L"次の曲"},
+             .none = L"なし",
+             .other = L"その他 (INI)"},
     .hour = L"時刻",
     .weather = L"天候",
     .rain = L"雨",
@@ -248,6 +378,19 @@ static const ForkText japanese = {
                 L"熱帯嵐 2", L"熱帯嵐（霧）"}};
 
 static const ForkText chinese = {
+    .menu = {.hud = L"HUD 按鍵",
+             .world = L"時間與天氣按鍵",
+             .music = L"我的音樂",
+             .volume = L"我的音樂音量",
+             .hud_info = L"用按鍵隱藏或顯示 HUD。重新啟動遊戲後生效。",
+             .world_info = L"用於時間、天氣、時鐘、時間流速與降雨的按鍵。重新啟動遊戲後生效。",
+             .music_info = L"透過電台播放 LocalMusic 資料夾中的 MP3 檔案。重新啟動遊戲後生效。",
+             .volume_info = L"在遊戲電台音量之前套用的歌曲音量。100% 為遊戲原本較小的音量。",
+             .key_info = L"此動作使用的鍵盤按鍵。「其他 (INI)」是在 FH2_ExtraOptions.ini 中設定的按鍵。",
+             .key = L"按鍵",
+             .actions = {L"隱藏 HUD", L"下一小時", L"天氣", L"時鐘", L"時間流速", L"降雨", L"我的音樂 開/關", L"下一首"},
+             .none = L"無",
+             .other = L"其他 (INI)"},
     .hour = L"時間",
     .weather = L"天氣",
     .rain = L"雨量",
