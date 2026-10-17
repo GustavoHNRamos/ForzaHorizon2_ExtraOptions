@@ -23,14 +23,15 @@ Events and Bucket List challenges can override the time and weather you pick.
 
 ### Local music
 
-The Xbox One version could play your Xbox Music playlists through the radio. That service is gone, but the code is still in the game. This fork feeds it your own songs: the game decodes them with Media Foundation and plays them through its radio, with the title and artist (from ID3 tags or the file name) in the pop-up.
+The Xbox One version could play your Xbox Music playlists through the radio. That service is gone, but the code is still in the game. This fork feeds it your own songs: the game decodes them with Media Foundation and plays them through its radio, with the title and artist (from ID3 tags or the file name) in the radio pop-up.
 
 1. Create a folder named `LocalMusic` beside `forza_durango_release_final.exe` (the game's `Mount` folder) and copy your songs into it. Subfolders are fine.
-2. In the game, press MusicToggle (Home). Changing station with the D-pad leaves the music player.
+2. In the game, pick the **Xbox Music** station on the D-pad (after the last station), or press MusicToggle (Home). MusicNext (End) skips a song; changing station leaves the music player.
 
 Limits:
 - **MP3 only.** FLAC and M4A do not open in Media Foundation under Wine. Other formats depend on the system.
 - **Real files inside Mount.** Azimuth refuses symbolic links and file names with accents or symbols; such files are skipped.
+- The Xbox Music station is unlocked in your save, as the Xbox One game did. Without the mod it stays in the D-pad list but plays nothing.
 - The game's radio volume still applies. `Volume` in `FH2_Music.ini` raises the music level (default 200%).
 
 ## Configuration
@@ -62,7 +63,7 @@ Like the original, everything happens in memory; no game or Azimuth file is chan
 
 - **HUD**: the Opacity of the game's Hud and Notifications controls, captured from their vtables (the `nohud` debug path).
 - **Time and weather**: the TimeOfDay fields and the WeatherManager requests used by the Bucket List challenges and the `timespeed`, `timestopped`, `pauseweather` and `weather*intensity` debug options, driven from ForzaSimulation's per-frame update on the game thread.
-- **Music**: the radio's Xbox Music path (`RadioSystem`, `SongStream`, Media Foundation `MFCreateSourceReaderFromURL`, FMOD event `event:/Master/Radio/XboxLiveStreaming`). This build never enables the FMOD sink for it, so the fork builds that sink from the engine's FMOD Studio system.
+- **Music**: the radio's Xbox Music path (`RadioSystem`, `SongStream`, Media Foundation `MFCreateSourceReaderFromURL`, FMOD event `event:/Master/Radio/XboxLiveStreaming`). This build never enables the FMOD sink for it, so the fork builds that sink from the engine's FMOD Studio system. The radio's own Xbox Music station is offered while there are songs (RadioSystem slot 24) and unlocked on the D-pad like the game's intro popup did; leftover Xbox Music service errors are kept from re-showing the station pop-up.
 
 Addresses and hooks are listed in `patches.json` (`runtime_hooks`) and commented in `features/hud_toggle.c`, `features/world_controls.c`, `features/local_music.c`, `features/key_bindings.c` and `features/fork_text.c`.
 

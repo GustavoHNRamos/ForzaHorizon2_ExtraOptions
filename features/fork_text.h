@@ -10,7 +10,7 @@ typedef struct {
 } ForkMenuText;
 
 typedef struct {
-    const wchar_t *hour, *weather, *rain, *clock, *clock_speed, *now_playing, *music;
+    const wchar_t *hour, *weather, *rain, *clock, *clock_speed, *music;
     const wchar_t *locked, *weather_automatic, *weather_frozen, *rain_automatic;
     const wchar_t *rain_levels[4];
     const wchar_t *clock_states[3];

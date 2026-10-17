@@ -8,10 +8,10 @@
 /* "Minha música": plays a folder of the player's own songs through the radio's Xbox Music path,
    which the game still ships. RadioSystem slot 22 opens a URL with Media Foundation
    (MFCreateSourceReaderFromURL also takes a local path), decodes it and feeds FMOD, and shows
-   the title and artist like an Xbox Music song. MusicToggle [Home] turns it on (the radio
-   enters its Xbox Music mode, which stops the station) or off; MusicNext [End] skips. A
-   finished song is followed by the next one, and changing station with the D-pad leaves the
-   mode. Azimuth only lets the game open real folders inside Mount (no links, ASCII names), so
+   the title and artist like an Xbox Music song. The radio's own "Xbox Music" station is shown
+   on the D-pad when its availability check (slot 24) passes, so the mod answers it while there
+   are songs: picking that station, or MusicToggle [Home], plays them; MusicNext [End] skips.
+   A finished song is followed by the next one, and changing station leaves the mode. Azimuth only lets the game open real folders inside Mount (no links, ASCII names), so
    songs go in Mount\LocalMusic: the mod scans it through its host path (beside the game EXE)
    and hands each song to the game as game:\LocalMusic\... FH2_Music.ini beside
    FH2_ExtraOptions.ini can change the folders, the file types and the volume. Keys are read on
@@ -22,6 +22,27 @@
 #define RADIO_SET_STATION_SLOT 8
 #define RADIO_PLAY_SLOT 22
 #define RADIO_STOP_SLOT 23
+/* Slot 24 says whether Xbox Music is available (an audio engine flag this build never sets);
+   the D-pad station list adds "Xbox Music" and SetStation accepts it only when it is true. */
+#define RADIO_AVAILABLE_SLOT_RVA (0x2e76818u + 24 * 8)
+#define RADIO_AVAILABLE_RVA 0x1012090u
+/* The D-pad cycles EntityModel::RadioModule's stations 1-8 (Xbox Music is 8) and skips locked
+   ones. The game unlocks Xbox Music once, in its intro popup at free-roam start
+   (RadioSetStationUnlocked, FUN_140671820); the mod makes the same call. The module comes from
+   FUN_140766c70 on the global at 0x34c0f40 as a {module, shared count} pair; the unlock needs
+   the radio controller at 0x365a298. */
+/* HudStatusRadioManager slot 1 handles radio events; on the Xbox Music station any player
+   event (0x22) shows the station popup again. What is left of the Xbox Music service posts a
+   player error (subtype 3, CSystemEventParamXboxRadioError) every 10 seconds while the mod's
+   songs play normally, so those are not passed on while the mod is playing. */
+#define HUD_RADIO_EVENT_SLOT_RVA 0x2cdcf40u
+#define HUD_RADIO_EVENT_RVA 0x7835b0u
+#define RADIO_PLAYER_EVENT 0x22
+#define RADIO_PLAYER_ERROR 3
+#define RADIO_MODULE_HOLDER_RVA 0x34c0f40u
+#define RADIO_MODULE_GET_RVA 0x766c70u
+#define RADIO_UNLOCK_RVA 0x671820u
+#define RADIO_CONTROLLER_RVA 0x365a298u
 /* RadioSystem fields: +0x85 Xbox Music mode, +0x90 streaming player (+0 enabled when Media
    Foundation started, +8 current SongStream, cleared when a song ends). */
 #define RADIO_XBOX_MUSIC_MODE 0x85u
@@ -56,6 +77,10 @@ typedef void (*SetStationFn)(void *, void *);
 typedef void (*PlayFn)(void *, const wchar_t *, const wchar_t *, const wchar_t *);
 typedef void (*StopFn)(void *);
 typedef char (*SinkInitFn)(void *, void *);
+typedef char (*AvailableFn)(void *);
+typedef void *(*ModuleGetFn)(void *, void *);
+typedef void (*UnlockFn)(void *, void *, char);
+typedef unsigned long long (*HudEventFn)(void *, int, unsigned long long, void *);
 typedef void *(*CreateSinkFn)(void *, void *);
 typedef void (*SharedAssignFn)(void *, void *);
 typedef void (*ReleaseFn)(void *);
@@ -81,6 +106,7 @@ static unsigned exclude_count;
 static wchar_t *songs[MAX_SONGS];
 static unsigned song_count, song_next, skipped_names;
 static float volume = 2.0f;
+static int station_unlocked, dropped_errors;
 static wchar_t game_folder[FOLDER_CAPACITY];
 static size_t host_folder_length;
 
@@ -521,17 +547,7 @@ static void play_next(unsigned char *radio) {
             if (instance) {
                 ((SetVolumeFn)(game_image + EVENT_SET_VOLUME_RVA))(instance, volume);
             }
-            wchar_t value[48] = {0};
-            size_t length = wide_length(artist);
-            wide_copy(value, ARRAY_COUNT(value), artist, length);
-            if (length + 3 < ARRAY_COUNT(value)) {
-                value[length] = L' ';
-                value[length + 1] = 0x2013;
-                value[length + 2] = L' ';
-                wide_copy(value + length + 3, ARRAY_COUNT(value) - length - 3, title,
-                          wide_length(title));
-            }
-            autodrive_notice_show_text(fork_text(game_image)->now_playing, value);
+            /* The HUD's Xbox Music station shows the title and artist. */
             log_append("MUSIC: playing the next song.\r\n");
             return;
         }
@@ -584,12 +600,7 @@ static void prepare_sink(unsigned char *radio) {
     }
 }
 
-static void toggle(unsigned char *radio) {
-    if (active) {
-        leave_mode(radio, "MUSIC: turned off.\r\n");
-        autodrive_notice_show_text(fork_text(game_image)->music, fork_text(game_image)->music_off);
-        return;
-    }
+static void start(unsigned char *radio) {
     if (!scanned) {
         load_playlist();
     }
@@ -612,6 +623,64 @@ static void toggle(unsigned char *radio) {
     play_next(radio);
 }
 
+static void toggle(unsigned char *radio) {
+    if (active) {
+        leave_mode(radio, "MUSIC: turned off.\r\n");
+        autodrive_notice_show_text(fork_text(game_image)->music, fork_text(game_image)->music_off);
+        return;
+    }
+    start(radio);
+}
+
+/* Unlocks the Xbox Music station on the D-pad once the radio module exists. */
+static void unlock_station(void) {
+    void *holder = *(void **)(game_image + RADIO_MODULE_HOLDER_RVA);
+    if (!holder || !*(void **)(game_image + RADIO_CONTROLLER_RVA)) {
+        return;
+    }
+    struct {
+        void *module;
+        unsigned char *count;
+    } ref = {0, 0};
+    ((ModuleGetFn)(game_image + RADIO_MODULE_GET_RVA))(holder, &ref);
+    if (ref.module) {
+        SmallString name = {"Xbox Music", 10, 15};
+        ((UnlockFn)(game_image + RADIO_UNLOCK_RVA))(ref.module, &name, 0);
+        station_unlocked = 1;
+        log_append("MUSIC: Xbox Music station unlocked on the D-pad.\r\n");
+    }
+    /* Release the shared reference like the game does: uses at +8, weak references at +0xc. */
+    if (ref.count && InterlockedDecrement((volatile LONG *)(ref.count + 8)) == 0) {
+        (*(void (**)(void *))*(void **)ref.count)(ref.count);
+        if (InterlockedDecrement((volatile LONG *)(ref.count + 0xc)) == 0) {
+            (*(void (**)(void *))(*(unsigned char **)ref.count + 8))(ref.count);
+        }
+    }
+}
+
+/* HudStatusRadioManager slot 1: player errors are not shown while the mod's songs play. */
+static unsigned long long hud_radio_event(void *hud, int type, unsigned long long subtype,
+                                          void *data) {
+    if (type == RADIO_PLAYER_EVENT && subtype == RADIO_PLAYER_ERROR && active) {
+        if (!dropped_errors++) {
+            log_append("MUSIC: Xbox Music service errors hidden from the HUD.\r\n");
+        }
+        return 0;
+    }
+    return ((HudEventFn)(game_image + HUD_RADIO_EVENT_RVA))(hud, type, subtype, data);
+}
+
+/* RadioSystem slot 24: the Xbox Music station is offered while there are songs to play. */
+static char station_available(unsigned char *radio) {
+    if (!scanned) {
+        load_playlist();
+    }
+    if (song_count && radio[RADIO_PLAYER_ENABLED]) {
+        return 1;
+    }
+    return ((AvailableFn)(game_image + RADIO_AVAILABLE_RVA))(radio);
+}
+
 void local_music_update(void) {
     if (!enabled) {
         return;
@@ -622,6 +691,18 @@ void local_music_update(void) {
     }
     if (InterlockedExchange(&pending_toggle, 0)) {
         toggle(radio);
+    }
+    if (!station_unlocked && radio[RADIO_PLAYER_ENABLED]) {
+        if (!scanned) {
+            load_playlist();
+        }
+        if (song_count) {
+            unlock_station();
+        }
+    }
+    if (!active && radio[RADIO_XBOX_MUSIC_MODE] && song_count) {
+        /* The player picked the Xbox Music station on the D-pad. */
+        start(radio);
     }
     if (!active) {
         InterlockedExchange(&pending_skip, 0);
@@ -674,7 +755,39 @@ PatchDefinition local_music_buffer_patch = {STREAM_BUFFER_RVA,
                                             buffer_accepted,
                                             2};
 
+static unsigned char available_original[8], available_hook[8], hud_original[8], hud_hook[8];
+static const unsigned char *const available_accepted[] = {available_original, available_hook};
+static const unsigned char *const hud_accepted[] = {hud_original, hud_hook};
+PatchDefinition local_music_hud_patch = {HUD_RADIO_EVENT_SLOT_RVA,
+                                         0,
+                                         8,
+                                         GROUP_LOCAL_MUSIC,
+                                         "local_music_hud_radio_event",
+                                         hud_original,
+                                         hud_hook,
+                                         hud_hook,
+                                         hud_accepted,
+                                         2};
+PatchDefinition local_music_station_patch = {RADIO_AVAILABLE_SLOT_RVA,
+                                             0,
+                                             8,
+                                             GROUP_LOCAL_MUSIC,
+                                             "local_music_station_available",
+                                             available_original,
+                                             available_hook,
+                                             available_hook,
+                                             available_accepted,
+                                             2};
+
 void local_music_prepare(unsigned char *image, const ModOptions *options) {
     game_image = image;
     enabled = options->local_music;
+    uintptr_t original = (uintptr_t)(image + RADIO_AVAILABLE_RVA);
+    uintptr_t hook = (uintptr_t)station_available;
+    memory_copy(available_original, &original, 8);
+    memory_copy(available_hook, &hook, 8);
+    original = (uintptr_t)(image + HUD_RADIO_EVENT_RVA);
+    hook = (uintptr_t)hud_radio_event;
+    memory_copy(hud_original, &original, 8);
+    memory_copy(hud_hook, &hook, 8);
 }

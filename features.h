@@ -32,6 +32,8 @@ extern PatchDefinition autodrive_hook_patches[12];
 extern PatchDefinition hud_toggle_hook_patches[4];
 extern PatchDefinition world_controls_hook_patch;
 extern PatchDefinition local_music_buffer_patch;
+extern PatchDefinition local_music_station_patch;
+extern PatchDefinition local_music_hud_patch;
 void garage_prepare_hook(unsigned char *game_image);
 void garage_commit_options(const ModOptions *options);
 void *garage_callback_address(void);

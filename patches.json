@@ -1814,6 +1814,26 @@
       "file_normalized": false,
       "option": "Music.LocalMusic",
       "description": "decodebuffersize of the Xbox Music programmer-sound stream (FUN_141018fe0) raised from 0x1000 to 0x4000 samples to avoid underruns under Wine's Media Foundation."
+    },
+    {
+      "id": "local_music_station_available",
+      "rva": 48720088,
+      "original_function_rva": 16851088,
+      "runtime_group": "LOCAL_MUSIC",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "Music.LocalMusic",
+      "description": "RadioSystem slot 24 (Xbox Music available, an audio engine flag this build never sets); answers true while there are songs so the D-pad station list offers Xbox Music and SetStation accepts it."
+    },
+    {
+      "id": "local_music_hud_radio_event",
+      "rva": 47042368,
+      "original_function_rva": 7878064,
+      "runtime_group": "LOCAL_MUSIC",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "Music.LocalMusic",
+      "description": "HudStatusRadioManager slot 1 (radio events). While the mod plays, Xbox Music player errors (event 0x22, subtype 3) posted every 10 seconds by the remains of the Xbox Music service are not passed on, so the station popup is not shown again."
     }
   ],
   "runtime_data": [
