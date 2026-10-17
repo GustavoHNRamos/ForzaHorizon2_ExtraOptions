@@ -55,6 +55,7 @@ COMMON_SOURCES = [
     "features/autodrive_ui.c",
     "features/key_bindings.c",
     "features/fork_text.c",
+    "features/fork_menu.c",
     "features/hud_toggle.c",
     "features/world_controls.c",
     "features/local_music.c",
@@ -109,7 +110,7 @@ def compiler_arguments(compiler, options):
 
 
 def version_resource(filename):
-    version = re.search(r'#define MOD_VERSION "([\d.]+)"',
+    version = re.search(r'#define MOD_VERSION "([\d.]+)',
                         (SOURCE / "extra_options.h").read_text()).group(1)
     numbers = [int(part) for part in version.split(".")]
     numbers += [0] * (4 - len(numbers))

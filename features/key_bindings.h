@@ -25,4 +25,6 @@ void key_binding_describe(int value, char *out, size_t capacity);
 void key_bindings_prepare(const ModOptions *options);
 void key_bindings_frame(void);
 int key_bindings_pressed(KeyAction action);
+int key_bindings_get(KeyAction action);
+void key_bindings_set(KeyAction action, int value);
 #endif

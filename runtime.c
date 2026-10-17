@@ -1,5 +1,6 @@
 #include "runtime.h"
 #include "features.h"
+#include "features/fork_menu.h"
 #include "features/video_settings.h"
 #include "logging.h"
 #include "patch_engine.h"
@@ -75,6 +76,7 @@ int runtime_initialize(unsigned char *game_image, const wchar_t *executable_path
         video_settings_load(settings_directory);
         video_settings_seed(&options);
         video_settings_apply(&options);
+        fork_menu_prepare(settings_directory, &options);
     }
     if (initialized && options.enabled) {
         initialized = verify_game_file(executable_path);

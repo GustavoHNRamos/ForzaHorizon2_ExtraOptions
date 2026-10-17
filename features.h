@@ -63,6 +63,9 @@ void local_music_prepare(unsigned char *game_image, const ModOptions *options);
 void local_music_set_paths(const wchar_t *directory, const wchar_t *executable_path);
 void local_music_frame(void);
 void local_music_update(void);
+const wchar_t *local_music_ini_path(void);
+unsigned local_music_volume_percent(void);
+void local_music_set_volume_percent(unsigned percent);
 void gamerpic_set_directory(const wchar_t *directory);
 
 void livery_prepare_defaults(unsigned char *game_image);
