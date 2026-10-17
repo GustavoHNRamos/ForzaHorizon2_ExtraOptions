@@ -1,4 +1,5 @@
 #include "features.h"
+#include "fork_menu.h"
 #include "logging.h"
 #include "support.h"
 #include "video_options_text.h"
@@ -377,6 +378,9 @@ static void **get_resource(void *reader, void **output) {
             video_options_extend_xaml(image, original->bytes, original->length, bytes, XAML_LIMIT);
     }
     unsigned page = video_options_page(original->bytes, original->length);
+    if (length && !logo && page == HUD_PAGE && fork_menu_register(image)) {
+        length = fork_menu_extend_hud(image, bytes, length, XAML_LIMIT);
+    }
     if (!length || (!logo && !register_properties(page))) {
         free_object(replacement);
         log_append("SETTINGS: menu layout did not match; original menu retained.\r\n");

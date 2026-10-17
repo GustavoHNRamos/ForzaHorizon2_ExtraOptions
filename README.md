@@ -1,6 +1,6 @@
 # Forza Horizon 2 - Extra Options (time, weather and music fork)
 
-This is a fork of [RokkuDayo's Forza Horizon 2 - Extra Options](https://github.com/RokkuDayo/forzahorizon2_extraoptions). It keeps every feature of the original and adds keyboard controls for the HUD, the time of day, the weather and a local music player. **It targets Azimuth only** (built and tested with Azimuth 0.9.9); the Mezcal adapter is kept from the original but is not built or tested here.
+This is a fork of [RokkuDayo's Forza Horizon 2 - Extra Options](https://github.com/RokkuDayo/forzahorizon2_extraoptions). It keeps every feature of the original and adds keyboard controls for the HUD, the time of day, the weather and a local music player. **It targets Azimuth only** (built and tested with Azimuth 0.9.10); the Mezcal adapter is kept from the original but is not built or tested here.
 
 ## What this fork adds
 
@@ -35,20 +35,26 @@ Limits:
 
 ## Configuration
 
-The [extras](extras) folder has the files to place beside `azimuth-tls.dll` in `Azimuth\data\bin`:
+The [extras](extras) folder has the files to place beside `winmm.dll` in the Azimuth folder (where `azimuth.exe` is):
 
 - `FH2_ExtraOptions.ini`: the original options plus the fork's `[HUD]`, `[World]`, `[Music]` and `[Keys]` sections. Each feature can be turned off there.
 - `FH2_Music.ini` (optional): music file types, folders to skip, volume, and the music folder.
 
 ### Keys
 
-Every action has a line in `[Keys]`. A key can be `F1`-`F24`, a letter or digit, a name (`Home`, `End`, `Insert`, `Delete`, `PageUp`, `PageDown`, arrows `Up`/`Down`/`Left`/`Right`, `Tab`, `Space`, `Backspace`, `Enter`, `Pause`, `ScrollLock`, `CapsLock`, `Numpad0`-`Numpad9`, `NumpadAdd`, `NumpadSubtract`, `NumpadMultiply`, `NumpadDivide`, `NumpadDecimal`), a punctuation character such as `[` (it follows your keyboard layout), or a virtual-key code such as `0x24`. `;` and `#` start a comment in the INI, so use their virtual-key codes. Avoid `Esc`, which Azimuth uses to quit.
+Every action has a line in `[Keys]`. A key can be `None`, `F1`-`F24`, a letter or digit, a name (`Home`, `End`, `Insert`, `Delete`, `PageUp`, `PageDown`, arrows `Up`/`Down`/`Left`/`Right`, `Tab`, `Space`, `Backspace`, `Enter`, `Pause`, `ScrollLock`, `CapsLock`, `Numpad0`-`Numpad9`, `NumpadAdd`, `NumpadSubtract`, `NumpadMultiply`, `NumpadDivide`, `NumpadDecimal`), a punctuation character such as `[` (it follows your keyboard layout), or a virtual-key code such as `0x24`. `;` and `#` start a comment in the INI, so use their virtual-key codes. Avoid `Esc`, which Azimuth uses to quit.
+
+### In-game menu
+
+The fork's settings are also in the game's **Options > HUD** menu, below the original mod's rows: the three feature switches (restart the game to apply), the My Music volume, and a key for each action (both apply at once). Choices are written back to `FH2_ExtraOptions.ini` and `FH2_Music.ini`, so the menu and the files always agree. A key set in the INI that is not in the menu's list shows as "Other (INI)".
 
 When the game starts, `FH2_ExtraOptions.log` lists each enabled action with the name Windows gives its key, and warns when two actions share a key.
 
 ## Installation
 
-Same as the original, for Azimuth: copy `azimuth-tls.dll`, `FH2_ExtraOptions.ini`, `Gamerpic.png` and, if you want, `FH2_Music.ini` into `Azimuth\data\bin`, replacing the existing DLL.
+Same as the original, for Azimuth 0.9.10: copy `winmm.dll`, `FH2_ExtraOptions.ini`, `Gamerpic.png` and, if you want, `FH2_Music.ini` into the Azimuth folder, where `azimuth.exe` is. Keep Azimuth's own `azimuth-tls.dll` in `data\bin`; if an older Extra Options release replaced it, put back the original from the Azimuth download.
+
+On Linux (Wine/Proton), Wine must load this `winmm.dll` instead of its own: set the DLL override `winmm=n,b`. In Lutris, add it under the game's Runner options > DLL overrides (`wine: overrides: winmm: n,b` in its YAML); a `WINEDLLOVERRIDES` environment variable is replaced by Lutris there. Restart Lutris after the change. Without the override the game starts without the mod and `FH2_ExtraOptions.log` is not written.
 
 ## How it works
 

@@ -74,7 +74,7 @@ static unsigned extension_count;
 
 static unsigned char *game_image;
 static int enabled, active, scanned;
-static volatile LONG pending_toggle, pending_skip;
+static volatile LONG pending_toggle, pending_skip, pending_volume;
 static wchar_t music_ini[PATH_CAPACITY], default_folder[FOLDER_CAPACITY];
 static wchar_t excludes[MAX_EXCLUDES][NAME_CAPACITY];
 static unsigned exclude_count;
@@ -84,10 +84,13 @@ static float volume = 2.0f;
 static wchar_t game_folder[FOLDER_CAPACITY];
 static size_t host_folder_length;
 
+static void read_volume(void);
+
 void local_music_set_paths(const wchar_t *directory, const wchar_t *executable_path) {
     if (!path_join(music_ini, directory, L"FH2_Music.ini")) {
         music_ini[0] = 0;
     }
+    read_volume();
     /* Default folder: LocalMusic beside the game EXE, which Azimuth maps as game:\. */
     size_t length = 0, folder_end = 0;
     for (; executable_path[length]; ++length) {
@@ -270,17 +273,10 @@ static void read_setting(const wchar_t *key, const wchar_t *fallback, wchar_t *o
     }
 }
 
-static void load_playlist(void) {
-    scanned = 1;
-    wchar_t folder[FOLDER_CAPACITY], list[NAME_CAPACITY * 2], percent[16];
-    read_setting(L"Folder", default_folder, folder, FOLDER_CAPACITY);
-    read_setting(L"GameFolder", L"game:\\LocalMusic", game_folder, FOLDER_CAPACITY);
-    read_setting(L"Exclude", L"", list, ARRAY_COUNT(list));
-    exclude_count = split_list(list, excludes[0], MAX_EXCLUDES, NAME_CAPACITY);
-    read_setting(L"Extensions", L"mp3", list, ARRAY_COUNT(list));
-    extension_count = split_list(list, extensions[0], MAX_EXTENSIONS, ARRAY_COUNT(extensions[0]));
-    /* Volume is a percentage of the event's own level, applied before the radio volume, so
-       the game's radio slider still scales it. FMOD amplifies above 100. */
+/* Volume is a percentage of the event's own level, applied before the radio volume, so the
+   game's radio slider still scales it. FMOD amplifies above 100. */
+static void read_volume(void) {
+    wchar_t percent[16];
     read_setting(L"Volume", L"200", percent, ARRAY_COUNT(percent));
     unsigned value = 0;
     for (const wchar_t *c = percent; *c >= L'0' && *c <= L'9' && value < 10000; ++c) {
@@ -289,6 +285,32 @@ static void load_playlist(void) {
     if (value) {
         volume = (float)(value > 800 ? 800 : value) / 100.0f;
     }
+}
+
+const wchar_t *local_music_ini_path(void) {
+    return music_ini;
+}
+
+unsigned local_music_volume_percent(void) {
+    return (unsigned)(volume * 100.0f + 0.5f);
+}
+
+/* From the menu: used by the next song, and by the current one on the next update. */
+void local_music_set_volume_percent(unsigned percent) {
+    volume = (float)(percent > 800 ? 800 : percent) / 100.0f;
+    InterlockedExchange(&pending_volume, 1);
+}
+
+static void load_playlist(void) {
+    scanned = 1;
+    wchar_t folder[FOLDER_CAPACITY], list[NAME_CAPACITY * 2];
+    read_setting(L"Folder", default_folder, folder, FOLDER_CAPACITY);
+    read_setting(L"GameFolder", L"game:\\LocalMusic", game_folder, FOLDER_CAPACITY);
+    read_setting(L"Exclude", L"", list, ARRAY_COUNT(list));
+    exclude_count = split_list(list, excludes[0], MAX_EXCLUDES, NAME_CAPACITY);
+    read_setting(L"Extensions", L"mp3", list, ARRAY_COUNT(list));
+    extension_count = split_list(list, extensions[0], MAX_EXTENSIONS, ARRAY_COUNT(extensions[0]));
+    read_volume();
     size_t length = wide_length(folder);
     while (length && (folder[length - 1] == L'\\' || folder[length - 1] == L'/')) {
         folder[--length] = 0;
@@ -610,6 +632,13 @@ void local_music_update(void) {
         active = 0;
         log_append("MUSIC: left because the radio changed station.\r\n");
         return;
+    }
+    if (InterlockedExchange(&pending_volume, 0) && *(void **)(radio + RADIO_PLAYER_STREAM)) {
+        unsigned char *sink = *(unsigned char **)(radio + RADIO_PLAYER_SINK);
+        void *instance = sink ? *(void **)(sink + SINK_EVENT_INSTANCE) : 0;
+        if (instance) {
+            ((SetVolumeFn)(game_image + EVENT_SET_VOLUME_RVA))(instance, volume);
+        }
     }
     if (InterlockedExchange(&pending_skip, 0)) {
         ((StopFn)radio_vtable(radio)[RADIO_STOP_SLOT])(radio);
