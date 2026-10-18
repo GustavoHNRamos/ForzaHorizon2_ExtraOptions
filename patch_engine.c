@@ -79,9 +79,11 @@ static const PatchDefinition *const callback_patches[] = {&garage_hook_patch,
                                                           &hud_toggle_hook_patches[2],
                                                           &hud_toggle_hook_patches[3],
                                                           &world_controls_hook_patch,
+                                                          &world_controls_photo_patch,
                                                           &local_music_buffer_patch,
                                                           &local_music_station_patch,
-                                                          &local_music_hud_patch};
+                                                          &local_music_hud_patch,
+                                                          &local_music_intro_patch};
 
 enum { ALL_PATCH_COUNT = FIXED_PATCH_COUNT + ARRAY_COUNT(callback_patches) };
 

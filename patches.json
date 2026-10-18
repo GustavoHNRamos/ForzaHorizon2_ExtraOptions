@@ -1805,6 +1805,16 @@
       "description": "ForzaSimulation vtable slot 15, the per-frame update on the game thread; applies queued time, weather and local music actions (TimeOfDay at +0x480, WeatherManager at +0x488, RadioSystem global at RVA 0x365d410)."
     },
     {
+      "id": "world_controls_photo_update",
+      "rva": 48329448,
+      "original_function_rva": 14480352,
+      "runtime_group": "WORLD_CONTROLS",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "World.TimeAndWeatherKeys",
+      "description": "PhotoModeScene vtable slot 153, its per-frame update. Photo mode stops the simulation update, so the queued time and weather actions are applied here instead (no frozen weather or real time, wetness set with the rain) and the photo accumulation is restarted through the flag at [RVA 0x34b3e70]+0x14, as a camera move does."
+    },
+    {
       "id": "local_music_stream_buffer",
       "rva": 16879694,
       "original": "c744244800100000",
@@ -1834,6 +1844,16 @@
       "file_normalized": false,
       "option": "Music.LocalMusic",
       "description": "HudStatusRadioManager slot 1 (radio events). While the mod plays, Xbox Music player errors (event 0x22, subtype 3) posted every 10 seconds by the remains of the Xbox Music service are not passed on, so the station popup is not shown again."
+    },
+    {
+      "id": "local_music_intro_popup",
+      "rva": 47199864,
+      "original_function_rva": 9024176,
+      "runtime_group": "LOCAL_MUSIC",
+      "type": "relocated_vtable_pointer",
+      "file_normalized": false,
+      "option": "Music.LocalMusic",
+      "description": "States::IsXboxMusicAccessible slot 4. Its only use is the Xbox Music intro popup (free-roam start and route switch), which would offer to set up the dead Xbox Music service once the station is available; the check always takes its \"no\" transition."
     }
   ],
   "runtime_data": [

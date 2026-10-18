@@ -21,6 +21,15 @@ Each change shows a short pop-up in the HUD (the one Autodrive uses), in the gam
 
 Events and Bucket List challenges can override the time and weather you pick.
 
+### Photo mode
+
+The time and weather keys also work in photo mode, so the same shot can be taken at another hour or in another weather. The game stops the world there, so the keys apply at once and photo mode renders the scene again, as it does when the camera moves:
+
+- NextHour, Weather and Rain change the scene; Weather skips "frozen" and Clock skips "PC local time", which mean nothing while the world stands still.
+- Rain also wets the road at once, since wetness normally builds up over time. Falling drops do not appear: they need the world to run. For a shot with drops, start the rain before opening photo mode.
+- Leaving photo mode puts back the time and weather that were there, so the changes only last for the photos. Only what a key changed is put back.
+- No pop-up is shown, as photo mode hides the HUD.
+
 ### Local music
 
 The Xbox One version could play your Xbox Music playlists through the radio. That service is gone, but the code is still in the game. This fork feeds it your own songs: the game decodes them with Media Foundation and plays them through its radio, with the title and artist (from ID3 tags or the file name) in the radio pop-up.
@@ -32,6 +41,7 @@ Limits:
 - **MP3 only.** FLAC and M4A do not open in Media Foundation under Wine. Other formats depend on the system.
 - **Real files inside Mount.** Azimuth refuses symbolic links and file names with accents or symbols; such files are skipped.
 - The Xbox Music station is unlocked in your save, as the Xbox One game did. Without the mod it stays in the D-pad list but plays nothing.
+- The game's old "Xbox Music available" pop-up, which offered to set up the Xbox Music service, is not shown.
 - The game's radio volume still applies. `Volume` in `FH2_Music.ini` raises the music level (default 200%).
 
 ## Configuration
@@ -62,8 +72,8 @@ On Linux (Wine/Proton), Wine must load this `winmm.dll` instead of its own: set 
 Like the original, everything happens in memory; no game or Azimuth file is changed. The fork reuses what the game already has:
 
 - **HUD**: the Opacity of the game's Hud and Notifications controls, captured from their vtables (the `nohud` debug path).
-- **Time and weather**: the TimeOfDay fields and the WeatherManager requests used by the Bucket List challenges and the `timespeed`, `timestopped`, `pauseweather` and `weather*intensity` debug options, driven from ForzaSimulation's per-frame update on the game thread.
-- **Music**: the radio's Xbox Music path (`RadioSystem`, `SongStream`, Media Foundation `MFCreateSourceReaderFromURL`, FMOD event `event:/Master/Radio/XboxLiveStreaming`). This build never enables the FMOD sink for it, so the fork builds that sink from the engine's FMOD Studio system. The radio's own Xbox Music station is offered while there are songs (RadioSystem slot 24) and unlocked on the D-pad like the game's intro popup did; leftover Xbox Music service errors are kept from re-showing the station pop-up.
+- **Time and weather**: the TimeOfDay fields and the WeatherManager requests used by the Bucket List challenges and the `timespeed`, `timestopped`, `pauseweather` and `weather*intensity` debug options, driven from ForzaSimulation's per-frame update on the game thread. Photo mode stops that update, so PhotoModeScene's own update applies the keys there and sets the flag that restarts its sample accumulation, the one a camera move sets.
+- **Music**: the radio's Xbox Music path (`RadioSystem`, `SongStream`, Media Foundation `MFCreateSourceReaderFromURL`, FMOD event `event:/Master/Radio/XboxLiveStreaming`). This build never enables the FMOD sink for it, so the fork builds that sink from the engine's FMOD Studio system. The radio's own Xbox Music station is offered while there are songs (RadioSystem slot 24) and unlocked on the D-pad like the game's intro popup did; leftover Xbox Music service errors are kept from re-showing the station pop-up, and the IsXboxMusicAccessible check, used only by the intro pop-up, answers no.
 
 Addresses and hooks are listed in `patches.json` (`runtime_hooks`) and commented in `features/hud_toggle.c`, `features/world_controls.c`, `features/local_music.c`, `features/key_bindings.c` and `features/fork_text.c`.
 

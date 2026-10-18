@@ -12,8 +12,9 @@
    fields the "timespeed"/"timestopped" debug options set, and send the same WeatherManager
    requests the Bucket List challenges and the "pauseweather"/"weather*intensity" debug options
    send. Keys are read on the UI frame and queued; ForzaSimulation's update performs the change
-   on the game thread. Each change is shown for a moment in the HUD's status pop-up, the one
-   Autodrive uses, in the game's text language. */
+   on the game thread, or PhotoModeScene's update while photo mode has paused the world. Each
+   change is shown for a moment in the HUD's status pop-up, the one Autodrive uses, in the
+   game's text language. */
 
 /* ForzaSimulation vtable slot 15, the per-frame update. Slot 16 only runs while loading. */
 #define SIMULATION_UPDATE_SLOT_RVA 0x2c5fb58u
@@ -24,6 +25,13 @@
 #define SIMULATION_CLOCK_OFFSET 0x480u
 #define SIMULATION_WEATHER_OFFSET 0x488u
 #define SECONDS_PER_DAY 86400.0f
+/* PhotoModeScene vtable slot 153, its per-frame update (FUN_140dcf3e0). The simulation update
+   stops while photo mode is open, so this one applies the keys there. */
+#define PHOTO_UPDATE_SLOT_RVA 0x2e172e8u
+#define PHOTO_UPDATE_RVA 0xdcf3e0u
+#define PAUSED_AFTER_MS 200u
+#define PHOTO_STATE_RVA 0x34b3e70u
+#define PHOTO_REFRESH_OFFSET 0x14u
 
 /* TimeOfDay fields: +0x10 time (s), +0x18 game seconds per real second, +0x24 stopped,
    +0x25 time locked, +0x26 speed overridden, +0x27 stopped state overridden. */
@@ -44,9 +52,11 @@
 enum { WEATHER_AUTOMATIC = -2, WEATHER_FROZEN = -1 };
 enum { RAIN_AUTOMATIC = -1, RAIN_LEVELS = 4, SPEED_LEVELS = 4 };
 enum { CLOCK_RUNNING, CLOCK_HALTED, CLOCK_REAL_TIME };
+enum { CHANGED_CLOCK = 1, CHANGED_WEATHER = 2 };
 enum { ACTION_HOUR, ACTION_WEATHER, ACTION_CLOCK, ACTION_SPEED, ACTION_RAIN, ACTION_COUNT };
 
 typedef void (*UpdateFn)(void *, float, float, float, int, char, char, char, char);
+typedef void (*PhotoUpdateFn)(void *);
 typedef float (*GetTimeFn)(void *, int);
 typedef void (*SetTimeFn)(void *, float, int);
 typedef void (*ApplyWeatherFn)(void *, void *);
@@ -65,9 +75,22 @@ static int weather_mode = WEATHER_AUTOMATIC, rain_level = RAIN_AUTOMATIC, speed_
 static int real_time;
 static ULONGLONG real_time_synced;
 static float frozen_atmosphere, frozen_environment, frozen_precipitation, normal_speed;
+static unsigned char *last_simulation;
+static volatile LONG64 last_update_tick;
+static int paused_apply;
+/* What photo mode found, put back when it closes if a key changed it there. */
+static struct {
+    int open, changed, weather_mode, rain_level, speed_level, real_time;
+    float time, frozen[3], sky[3], normal_speed;
+    unsigned char clock[0x28];
+} photo;
+static volatile LONG64 photo_tick;
 static unsigned char original_pointer[8], hook_pointer[8];
 static const unsigned char *accepted_pointers[2];
+static unsigned char photo_original_pointer[8], photo_hook_pointer[8];
+static const unsigned char *photo_accepted_pointers[2];
 PatchDefinition world_controls_hook_patch;
+PatchDefinition world_controls_photo_patch;
 
 static void log_parts(const char *first, const char *second, const char *third) {
     char line[128];
@@ -115,6 +138,13 @@ static void wide_number(wchar_t *out, size_t capacity, int value) {
     wide_append(out, capacity, text);
 }
 
+/* Photo mode hides the HUD, and a pop-up shown there would only expire after leaving it. */
+static void notice(const wchar_t *title, const wchar_t *value) {
+    if (!paused_apply) {
+        autodrive_notice_show_text(title, value);
+    }
+}
+
 static const ForkText *text(void) {
     return fork_text(game_image);
 }
@@ -143,7 +173,7 @@ static void advance_hour(unsigned char *clock) {
     /* The game's setter ignores the request while the clock is locked (events, replays). */
     if (clock[CLOCK_LOCKED]) {
         log_append("WORLD: next hour ignored; the game has locked the time of day.\r\n");
-        autodrive_notice_show_text(text()->hour, text()->locked);
+        notice(text()->hour, text()->locked);
         return;
     }
     if (real_time) {
@@ -164,13 +194,18 @@ static void advance_hour(unsigned char *clock) {
     log_parts("WORLD: time set to ", clock_text, ".");
     wchar_t value[6] = {(wchar_t)clock_text[0], (wchar_t)clock_text[1], L':',
                         (wchar_t)clock_text[3], (wchar_t)clock_text[4], 0};
-    autodrive_notice_show_text(text()->hour, value);
+    notice(text()->hour, value);
 }
 
 static void cycle_clock(unsigned char *clock) {
     int state = real_time ? CLOCK_REAL_TIME : clock[CLOCK_STOPPED] ? CLOCK_HALTED : CLOCK_RUNNING;
     if (state == CLOCK_REAL_TIME) {
         resume_clock(clock);
+        log_append("WORLD: clock resumed.\r\n");
+    } else if (state == CLOCK_HALTED && paused_apply) {
+        /* No real time while the world is paused. */
+        resume_clock(clock);
+        state = CLOCK_REAL_TIME;
         log_append("WORLD: clock resumed.\r\n");
     } else if (state == CLOCK_HALTED) {
         real_time = 1;
@@ -183,7 +218,7 @@ static void cycle_clock(unsigned char *clock) {
         clock[CLOCK_STOP_SET] = 1;
         log_append("WORLD: clock stopped.\r\n");
     }
-    autodrive_notice_show_text(text()->clock, text()->clock_states[(state + 1) % 3]);
+    notice(text()->clock, text()->clock_states[(state + 1) % 3]);
 }
 
 static void cycle_speed(unsigned char *clock) {
@@ -195,7 +230,7 @@ static void cycle_speed(unsigned char *clock) {
     *speed = normal_speed * speed_factors[speed_level];
     clock[CLOCK_SPEED_SET] = speed_level != 0;
     log_parts("WORLD: clock speed ", speed_names[speed_level], ".");
-    autodrive_notice_show_text(text()->clock_speed, text()->speeds[speed_level]);
+    notice(text()->clock_speed, text()->speeds[speed_level]);
 }
 
 /* Builds the whole request each time, because the game replaces every override with the
@@ -219,6 +254,11 @@ static void apply_weather(unsigned char *weather) {
     if (rain_level != RAIN_AUTOMATIC) {
         request[0x20] = 1;
         memory_copy(request + 0x24, &rain_levels[rain_level], 4);
+        if (paused_apply) {
+            /* Wetness builds up with time, which stands still in photo mode. */
+            request[0x18] = 1;
+            memory_copy(request + 0x1c, &rain_levels[rain_level], 4);
+        }
     }
     request[0x32] = 1;
     memory_copy(request + 0x34, &blend, 4);
@@ -235,7 +275,10 @@ static void cycle_weather(unsigned char *weather) {
         log_append("WORLD: weather key ignored; no weather presets are loaded.\r\n");
         return;
     }
-    if (weather_mode == WEATHER_AUTOMATIC) {
+    if (weather_mode == WEATHER_AUTOMATIC && paused_apply) {
+        /* Freezing means nothing while the world is paused. */
+        weather_mode = 0;
+    } else if (weather_mode == WEATHER_AUTOMATIC) {
         weather_mode = WEATHER_FROZEN;
         memory_copy(&frozen_atmosphere, weather + WEATHER_ATMOSPHERE, 4);
         memory_copy(&frozen_environment, weather + WEATHER_ENVIRONMENT, 4);
@@ -248,12 +291,12 @@ static void cycle_weather(unsigned char *weather) {
     apply_weather(weather);
     if (weather_mode == WEATHER_AUTOMATIC) {
         log_append("WORLD: weather returned to automatic.\r\n");
-        autodrive_notice_show_text(text()->weather, text()->weather_automatic);
+        notice(text()->weather, text()->weather_automatic);
         return;
     }
     if (weather_mode == WEATHER_FROZEN) {
         log_append("WORLD: current weather frozen.\r\n");
-        autodrive_notice_show_text(text()->weather, text()->weather_frozen);
+        notice(text()->weather, text()->weather_frozen);
         return;
     }
     char log_text[9] = {0, 0, ' ', 'o', 'f', ' ', 0, 0, 0};
@@ -270,7 +313,7 @@ static void cycle_weather(unsigned char *weather) {
     wide_append(value, ARRAY_COUNT(value), L"/");
     wide_number(value, ARRAY_COUNT(value), count);
     wide_append(value, ARRAY_COUNT(value), L")");
-    autodrive_notice_show_text(text()->weather, value);
+    notice(text()->weather, value);
 }
 
 static void cycle_rain(unsigned char *weather) {
@@ -278,9 +321,130 @@ static void cycle_rain(unsigned char *weather) {
     apply_weather(weather);
     log_parts("WORLD: rain ", rain_level == RAIN_AUTOMATIC ? "automatic" : rain_names[rain_level],
               ".");
-    autodrive_notice_show_text(text()->rain, rain_level == RAIN_AUTOMATIC
+    notice(text()->rain, rain_level == RAIN_AUTOMATIC
                                                  ? text()->rain_automatic
                                                  : text()->rain_levels[rain_level]);
+}
+
+static void perform(unsigned action, unsigned char *clock, unsigned char *weather) {
+    if (action == ACTION_HOUR && clock) {
+        advance_hour(clock);
+    } else if (action == ACTION_CLOCK && clock) {
+        cycle_clock(clock);
+    } else if (action == ACTION_SPEED && clock) {
+        cycle_speed(clock);
+    } else if (action == ACTION_WEATHER && weather) {
+        cycle_weather(weather);
+    } else if (action == ACTION_RAIN && weather) {
+        cycle_rain(weather);
+    }
+}
+
+/* Photo mode accumulates samples while the camera is still and then keeps the finished image.
+   Its update restarts the accumulation, as a camera move does, when this flag is set. */
+static void refresh_photo(void) {
+    unsigned char *state = *(unsigned char **)(game_image + PHOTO_STATE_RVA);
+    if (state) {
+        state[PHOTO_REFRESH_OFFSET] = 1;
+    }
+}
+
+static void read_sky(unsigned char *weather, float *sky) {
+    memory_copy(&sky[0], weather + WEATHER_ATMOSPHERE, 4);
+    memory_copy(&sky[1], weather + WEATHER_ENVIRONMENT, 4);
+    memory_copy(&sky[2], weather + WEATHER_PRECIPITATION, 4);
+}
+
+static void photo_open(unsigned char *clock, unsigned char *weather) {
+    photo.open = 1;
+    photo.changed = 0;
+    photo.weather_mode = weather_mode;
+    photo.rain_level = rain_level;
+    photo.speed_level = speed_level;
+    photo.real_time = real_time;
+    photo.normal_speed = normal_speed;
+    photo.frozen[0] = frozen_atmosphere;
+    photo.frozen[1] = frozen_environment;
+    photo.frozen[2] = frozen_precipitation;
+    if (weather) {
+        read_sky(weather, photo.sky);
+    }
+    if (clock) {
+        photo.time = ((GetTimeFn)(game_image + GET_TIME_RVA))(clock, 1);
+        memory_copy(photo.clock, clock, sizeof(photo.clock));
+    }
+}
+
+static void photo_close(unsigned char *clock, unsigned char *weather) {
+    photo.open = 0;
+    if (!photo.changed) {
+        return;
+    }
+    if (photo.changed & CHANGED_CLOCK) {
+        speed_level = photo.speed_level;
+        real_time = photo.real_time;
+        normal_speed = photo.normal_speed;
+    }
+    if (weather && (photo.changed & CHANGED_WEATHER)) {
+        /* Releasing the overrides leaves the photo mode sky in place, and the automatic weather
+           would only drift away from it. Force the sky photo mode found first, then hand it
+           back to the mode that was active. */
+        weather_mode = WEATHER_FROZEN;
+        rain_level = RAIN_AUTOMATIC;
+        frozen_atmosphere = photo.sky[0];
+        frozen_environment = photo.sky[1];
+        frozen_precipitation = photo.sky[2];
+        apply_weather(weather);
+        weather_mode = photo.weather_mode;
+        rain_level = photo.rain_level;
+        frozen_atmosphere = photo.frozen[0];
+        frozen_environment = photo.frozen[1];
+        frozen_precipitation = photo.frozen[2];
+        apply_weather(weather);
+    }
+    if (clock && (photo.changed & CHANGED_CLOCK)) {
+        /* Speed and the stopped state; the time itself goes through the game's setter. */
+        memory_copy(clock + CLOCK_SPEED, photo.clock + CLOCK_SPEED, 4);
+        clock[CLOCK_STOPPED] = photo.clock[CLOCK_STOPPED];
+        clock[CLOCK_SPEED_SET] = photo.clock[CLOCK_SPEED_SET];
+        clock[CLOCK_STOP_SET] = photo.clock[CLOCK_STOP_SET];
+        if (!clock[CLOCK_LOCKED]) {
+            ((SetTimeFn)(game_image + SET_TIME_RVA))(clock, photo.time, 1);
+        }
+    }
+    log_append("WORLD: photo mode changes undone.\r\n");
+}
+
+/* Applies the queued keys while photo mode has paused the world: no frozen weather or real
+   time (nothing moves), wetness set at once with the rain, no HUD pop-up (photo mode hides
+   the HUD), and the image accumulated again. */
+static void photo_update(void *scene) {
+    InterlockedExchange64(&photo_tick, (LONG64)GetTickCount64());
+    ULONGLONG idle =
+        GetTickCount64() - (ULONGLONG)InterlockedCompareExchange64(&last_update_tick, 0, 0);
+    if (last_simulation && idle > PAUSED_AFTER_MS) {
+        unsigned char *clock = *(unsigned char **)(last_simulation + SIMULATION_CLOCK_OFFSET);
+        unsigned char *weather = *(unsigned char **)(last_simulation + SIMULATION_WEATHER_OFFSET);
+        int applied = 0;
+        if (!photo.open) {
+            photo_open(clock, weather);
+        }
+        paused_apply = 1;
+        for (unsigned action = 0; action < ACTION_COUNT; ++action) {
+            for (LONG presses = InterlockedExchange(&pending[action], 0); presses > 0; --presses) {
+                perform(action, clock, weather);
+                applied = 1;
+                /* Only what a key touched is put back, so an event's own weather stays. */
+                photo.changed |= action == ACTION_WEATHER || action == ACTION_RAIN ? CHANGED_WEATHER
+                                                                                  : CHANGED_CLOCK;
+            }
+        }
+        paused_apply = 0;
+        if (applied) {
+            refresh_photo();
+        }
+    }
+    ((PhotoUpdateFn)(game_image + PHOTO_UPDATE_RVA))(scene);
 }
 
 static void simulation_update(void *simulation, float a, float b, float c, int d, char e, char f,
@@ -289,26 +453,22 @@ static void simulation_update(void *simulation, float a, float b, float c, int d
     if (!InterlockedExchange(&update_seen, 1)) {
         log_append("WORLD: simulation update hook active.\r\n");
     }
+    last_simulation = (unsigned char *)simulation;
+    InterlockedExchange64(&last_update_tick, (LONG64)GetTickCount64());
     autodrive_notice_expire_text();
     unsigned char *base = (unsigned char *)simulation;
     unsigned char *clock = *(unsigned char **)(base + SIMULATION_CLOCK_OFFSET);
     unsigned char *weather = *(unsigned char **)(base + SIMULATION_WEATHER_OFFSET);
+    if (photo.open && GetTickCount64() - (ULONGLONG)InterlockedCompareExchange64(&photo_tick, 0, 0) >
+                          PAUSED_AFTER_MS) {
+        photo_close(clock, weather);
+    }
     if (real_time && clock && GetTickCount64() - real_time_synced >= 1000) {
         sync_real_time(clock);
     }
     for (unsigned action = 0; action < ACTION_COUNT; ++action) {
         for (LONG presses = InterlockedExchange(&pending[action], 0); presses > 0; --presses) {
-            if (action == ACTION_HOUR && clock) {
-                advance_hour(clock);
-            } else if (action == ACTION_CLOCK && clock) {
-                cycle_clock(clock);
-            } else if (action == ACTION_SPEED && clock) {
-                cycle_speed(clock);
-            } else if (action == ACTION_WEATHER && weather) {
-                cycle_weather(weather);
-            } else if (action == ACTION_RAIN && weather) {
-                cycle_rain(weather);
-            }
+            perform(action, clock, weather);
         }
     }
     local_music_update();
@@ -344,4 +504,20 @@ void world_controls_prepare_hook(unsigned char *image, const ModOptions *options
                                                   hook_pointer,
                                                   accepted_pointers,
                                                   2};
+    uintptr_t photo_original = (uintptr_t)(image + PHOTO_UPDATE_RVA);
+    uintptr_t photo_hook = (uintptr_t)photo_update;
+    memory_copy(photo_original_pointer, &photo_original, 8);
+    memory_copy(photo_hook_pointer, &photo_hook, 8);
+    photo_accepted_pointers[0] = photo_original_pointer;
+    photo_accepted_pointers[1] = photo_hook_pointer;
+    world_controls_photo_patch = (PatchDefinition){PHOTO_UPDATE_SLOT_RVA,
+                                                   0,
+                                                   8,
+                                                   GROUP_WORLD_CONTROLS,
+                                                   "world_controls_photo_update",
+                                                   photo_original_pointer,
+                                                   photo_hook_pointer,
+                                                   photo_hook_pointer,
+                                                   photo_accepted_pointers,
+                                                   2};
 }

@@ -35,6 +35,14 @@
    event (0x22) shows the station popup again. What is left of the Xbox Music service posts a
    player error (subtype 3, CSystemEventParamXboxRadioError) every 10 seconds while the mod's
    songs play normally, so those are not passed on while the mod is playing. */
+/* States::IsXboxMusicAccessible slot 4 (FUN_14089b2b0) leads only to the Xbox Music intro
+   popup ("Xbox Music available ... set up Xbox Music now?"), at free-roam start and on a route
+   switch. Once the station is offered it would answer yes, so it always takes the "no"
+   transition (+0x58) through the stateflow's transition call (FUN_141925260). */
+#define MUSIC_INTRO_CHECK_SLOT_RVA 0x2d03678u
+#define MUSIC_INTRO_CHECK_RVA 0x89b2b0u
+#define STATE_TRANSITION_RVA 0x1925260u
+#define STATE_NO_TRANSITION 0x58u
 #define HUD_RADIO_EVENT_SLOT_RVA 0x2cdcf40u
 #define HUD_RADIO_EVENT_RVA 0x7835b0u
 #define RADIO_PLAYER_EVENT 0x22
@@ -658,6 +666,11 @@ static void unlock_station(void) {
     }
 }
 
+static void music_intro_check(unsigned char *state) {
+    ((void (*)(void *, void *))(game_image + STATE_TRANSITION_RVA))(state,
+                                                                    state + STATE_NO_TRANSITION);
+}
+
 /* HudStatusRadioManager slot 1: player errors are not shown while the mod's songs play. */
 static unsigned long long hud_radio_event(void *hud, int type, unsigned long long subtype,
                                           void *data) {
@@ -756,6 +769,18 @@ PatchDefinition local_music_buffer_patch = {STREAM_BUFFER_RVA,
                                             2};
 
 static unsigned char available_original[8], available_hook[8], hud_original[8], hud_hook[8];
+static unsigned char intro_original[8], intro_hook[8];
+static const unsigned char *const intro_accepted[] = {intro_original, intro_hook};
+PatchDefinition local_music_intro_patch = {MUSIC_INTRO_CHECK_SLOT_RVA,
+                                           0,
+                                           8,
+                                           GROUP_LOCAL_MUSIC,
+                                           "local_music_intro_popup",
+                                           intro_original,
+                                           intro_hook,
+                                           intro_hook,
+                                           intro_accepted,
+                                           2};
 static const unsigned char *const available_accepted[] = {available_original, available_hook};
 static const unsigned char *const hud_accepted[] = {hud_original, hud_hook};
 PatchDefinition local_music_hud_patch = {HUD_RADIO_EVENT_SLOT_RVA,
@@ -790,4 +815,8 @@ void local_music_prepare(unsigned char *image, const ModOptions *options) {
     hook = (uintptr_t)hud_radio_event;
     memory_copy(hud_original, &original, 8);
     memory_copy(hud_hook, &hook, 8);
+    original = (uintptr_t)(image + MUSIC_INTRO_CHECK_RVA);
+    hook = (uintptr_t)music_intro_check;
+    memory_copy(intro_original, &original, 8);
+    memory_copy(intro_hook, &hook, 8);
 }
